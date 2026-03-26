@@ -70,8 +70,15 @@
 
     #file-input { display: none; }
 
-    .btn {
+    .btn-row {
+      display: flex;
+      gap: 12px;
       margin-top: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
       padding: 12px 32px;
       background: #6c63ff;
       color: #fff;
@@ -85,6 +92,19 @@
 
     .btn:hover { background: #5a52d5; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #2a2a2a;
+      border: 1px solid #444;
+    }
+
+    .btn-secondary:hover { background: #333; }
+
+    #method-label {
+      font-size: 0.8rem;
+      color: #555;
+      margin-top: 8px;
+    }
 
     #status {
       margin-top: 20px;
@@ -210,8 +230,12 @@
     <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a" />
   </div>
 
-  <button class="btn" id="analyze-btn" disabled>Analyze</button>
+  <div class="btn-row">
+    <button class="btn" id="analyze-btn" disabled>Analyze</button>
+    <button class="btn btn-secondary" id="analyze-bp-btn" disabled>Analyze with Basic Pitch</button>
+  </div>
   <div id="status"></div>
+  <div id="method-label"></div>
   <div id="tempo"></div>
   <div id="player"><audio id="audio" controls></audio></div>
   <div id="results"></div>
@@ -220,11 +244,13 @@
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const analyzeBtn = document.getElementById('analyze-btn');
+    const analyzeBpBtn = document.getElementById('analyze-bp-btn');
     const status = document.getElementById('status');
     const results = document.getElementById('results');
     const player = document.getElementById('player');
     const audio = document.getElementById('audio');
     const tempoEl = document.getElementById('tempo');
+    const methodLabel = document.getElementById('method-label');
 
     let selectedFile = null;
     let chordData = [];
@@ -253,26 +279,30 @@
       selectedFile = file;
       dropZone.querySelector('p').innerHTML = `<span>${file.name}</span>`;
       analyzeBtn.disabled = false;
+      analyzeBpBtn.disabled = false;
       results.innerHTML = '';
       status.textContent = '';
       player.style.display = 'none';
       audio.src = '';
       chordData = [];
       tempoEl.innerHTML = '';
+      methodLabel.textContent = '';
     }
 
-    analyzeBtn.addEventListener('click', async () => {
+    async function runAnalysis(endpoint, label) {
       if (!selectedFile) return;
 
       analyzeBtn.disabled = true;
+      analyzeBpBtn.disabled = true;
       status.textContent = 'Analyzing... this may take a moment.';
       results.innerHTML = '';
+      activeCard = null;
 
       const formData = new FormData();
       formData.append('file', selectedFile);
 
       try {
-        const res = await fetch('/analyze', { method: 'POST', body: formData });
+        const res = await fetch(endpoint, { method: 'POST', body: formData });
         const data = await res.json();
 
         if (data.error) {
@@ -281,6 +311,7 @@
         }
 
         status.textContent = `Found ${data.chords.length} bars.`;
+        methodLabel.textContent = `Method: ${label}`;
         tempoEl.innerHTML = `Tempo: <span>${data.tempo} BPM</span>`;
         chordData = data.chords;
         audio.src = URL.createObjectURL(selectedFile);
@@ -290,8 +321,12 @@
         status.innerHTML = `<span class="error">Request failed. Is the server running?</span>`;
       } finally {
         analyzeBtn.disabled = false;
+        analyzeBpBtn.disabled = false;
       }
-    });
+    }
+
+    analyzeBtn.addEventListener('click', () => runAnalysis('/analyze', 'Chroma (librosa)'));
+    analyzeBpBtn.addEventListener('click', () => runAnalysis('/analyze-basic-pitch', 'Basic Pitch'));
 
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const INTERVALS = {

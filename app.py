@@ -101,6 +101,49 @@ def detect_chords(filepath, beats_per_bar=4):
     return bars, round(tempo, 1)
 
 
+def detect_chords_basic_pitch(filepath, beats_per_bar=4):
+    from basic_pitch.inference import predict
+    from basic_pitch import ICASSP_2022_MODEL_PATH
+
+    _, midi_data, _ = predict(filepath, ICASSP_2022_MODEL_PATH)
+
+    # Collect all note events as (start, end, pitch_class)
+    notes = []
+    for instrument in midi_data.instruments:
+        for note in instrument.notes:
+            notes.append((note.start, note.end, note.pitch % 12))
+
+    # Use librosa for beat tracking
+    hop_length = 512
+    y, sr = librosa.load(filepath, mono=True)
+    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop_length)
+    tempo = float(np.atleast_1d(tempo)[0])
+    beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=hop_length).tolist()
+
+    bars = []
+    for i in range(0, len(beat_times) - beats_per_bar + 1, beats_per_bar):
+        bar_start = float(beat_times[i])
+        bar_end = float(beat_times[i + beats_per_bar]) if (i + beats_per_bar) < len(beat_times) else float(beat_times[-1])
+
+        # Build chroma from notes active in this bar
+        chroma = np.zeros(12)
+        for note_start, note_end, pitch_class in notes:
+            if note_start < bar_end and note_end > bar_start:
+                chroma[pitch_class] += 1.0
+
+        chord = chroma_to_chord(chroma)
+        passing = get_passing_tones(chord, chroma)
+
+        bars.append({
+            'chord': chord,
+            'start': round(bar_start, 2),
+            'end': round(bar_end, 2),
+            'passing_tones': passing,
+        })
+
+    return bars, round(tempo, 1)
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -127,6 +170,30 @@ def analyze():
 
     try:
         chords, tempo = detect_chords(filepath)
+        return jsonify({'chords': chords, 'tempo': tempo})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        os.remove(filepath)
+
+
+@app.route('/analyze-basic-pitch', methods=['POST'])
+def analyze_basic_pitch():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if not file.filename:
+        return jsonify({'error': 'No file selected'}), 400
+    if not allowed_file(file.filename):
+        return jsonify({'error': f'Unsupported file type. Allowed: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+
+    try:
+        chords, tempo = detect_chords_basic_pitch(filepath)
         return jsonify({'chords': chords, 'tempo': tempo})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

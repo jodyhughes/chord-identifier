@@ -2,3 +2,4 @@ flask
 librosa
 numpy
 werkzeug
+basic-pitch
