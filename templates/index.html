@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chord Identifier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 0.95rem;
+      margin-bottom: 48px;
+    }
+
+    .drop-zone {
+      width: 100%;
+      max-width: 560px;
+      border: 2px dashed #333;
+      border-radius: 16px;
+      padding: 52px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #6c63ff;
+      background: #16141f;
+    }
+
+    .drop-zone .icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .drop-zone p {
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+
+    .drop-zone span {
+      color: #6c63ff;
+      font-weight: 600;
+    }
+
+    .formats {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    #file-input { display: none; }
+
+    .btn {
+      margin-top: 24px;
+      padding: 12px 32px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .btn:hover { background: #5a52d5; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #status {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #888;
+      min-height: 22px;
+    }
+
+    #results {
+      margin-top: 40px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    #results h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #ccc;
+    }
+
+    .chord-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .chord-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 10px 16px;
+    }
+
+    .chord-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      min-width: 70px;
+      color: #6c63ff;
+    }
+
+    .chord-name.nc {
+      color: #555;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .chord-time {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .chord-bar-wrap {
+      flex: 1;
+      background: #2a2a2a;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .chord-bar {
+      height: 100%;
+      background: #6c63ff;
+      border-radius: 4px;
+      min-width: 4px;
+    }
+
+    .error { color: #e05c5c; margin-top: 16px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <h1>Chord Identifier</h1>
+  <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
+
+  <div class="drop-zone" id="drop-zone">
+    <div class="icon">🎵</div>
+    <p><span>Choose a file</span> or drag and drop here</p>
+    <p class="formats">MP3 · WAV · FLAC · OGG · M4A — up to 50MB</p>
+    <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a" />
+  </div>
+
+  <button class="btn" id="analyze-btn" disabled>Analyze</button>
+  <div id="status"></div>
+  <div id="results"></div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+
+    let selectedFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      dropZone.querySelector('p').innerHTML = `<span>${file.name}</span>`;
+      analyzeBtn.disabled = false;
+      results.innerHTML = '';
+      status.textContent = '';
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      analyzeBtn.disabled = true;
+      status.textContent = 'Analyzing... this may take a moment.';
+      results.innerHTML = '';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const res = await fetch('/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.error) {
+          status.innerHTML = `<span class="error">Error: ${data.error}</span>`;
+          return;
+        }
+
+        status.textContent = `Found ${data.chords.length} chord segments.`;
+        renderChords(data.chords);
+      } catch (err) {
+        status.innerHTML = `<span class="error">Request failed. Is the server running?</span>`;
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = (seconds % 60).toFixed(1).padStart(4, '0');
+      return `${m}:${s}`;
+    }
+
+    function renderChords(chords) {
+      const totalDuration = chords.length ? chords[chords.length - 1].end : 1;
+      const list = document.createElement('div');
+      list.className = 'chord-list';
+
+      chords.forEach(({ chord, start, end }) => {
+        const duration = end - start;
+        const widthPct = Math.max(2, (duration / totalDuration) * 100);
+        const isNC = chord === 'N.C.';
+
+        const row = document.createElement('div');
+        row.className = 'chord-row';
+        row.innerHTML = `
+          <div class="chord-name ${isNC ? 'nc' : ''}">${chord}</div>
+          <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
+          <div class="chord-bar-wrap">
+            <div class="chord-bar" style="width:${widthPct}%"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      results.innerHTML = '<h2>Detected Chords</h2>';
+      results.appendChild(list);
+    }
+  </script>
+</body>
+</html>
