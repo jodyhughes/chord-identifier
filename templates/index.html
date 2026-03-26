@@ -33,7 +33,7 @@
 
     .drop-zone {
       width: 100%;
-      max-width: 560px;
+      max-width: 760px;
       border: 2px dashed #333;
       border-radius: 16px;
       padding: 52px 32px;
@@ -96,7 +96,7 @@
     #results {
       margin-top: 40px;
       width: 100%;
-      max-width: 560px;
+      max-width: 760px;
     }
 
     #results h2 {
@@ -108,50 +108,91 @@
 
     .chord-list {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    .chord-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
+    #player {
+      display: none;
+      width: 100%;
+      max-width: 760px;
+      margin-top: 32px;
+    }
+
+    #player audio {
+      width: 100%;
+      border-radius: 10px;
+      accent-color: #6c63ff;
+    }
+
+    .chord-card {
       background: #1a1a1a;
-      border-radius: 8px;
-      padding: 10px 16px;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 80px;
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .chord-card.active {
+      background: #2a2560;
+      transform: scale(1.08);
+    }
+
+    .chord-card.active .chord-name {
+      color: #a89fff;
     }
 
     .chord-name {
       font-size: 1.1rem;
       font-weight: 700;
-      min-width: 70px;
       color: #6c63ff;
     }
 
     .chord-name.nc {
-      color: #555;
+      color: #444;
       font-weight: 400;
       font-style: italic;
     }
 
+    #tempo {
+      font-size: 0.9rem;
+      color: #888;
+      margin-top: 12px;
+    }
+
+    #tempo span {
+      color: #e8e8e8;
+      font-weight: 600;
+    }
+
+    .chord-notes {
+      font-size: 0.75rem;
+      color: #888;
+      letter-spacing: 0.03em;
+    }
+
+    .chord-card.active .chord-notes {
+      color: #a89fff;
+    }
+
+    .chord-passing {
+      font-size: 0.68rem;
+      color: #e8a838;
+      letter-spacing: 0.03em;
+    }
+
+    .chord-card.active .chord-passing {
+      color: #ffc96b;
+    }
+
     .chord-time {
-      font-size: 0.8rem;
-      color: #666;
-    }
-
-    .chord-bar-wrap {
-      flex: 1;
-      background: #2a2a2a;
-      border-radius: 4px;
-      height: 6px;
-      overflow: hidden;
-    }
-
-    .chord-bar {
-      height: 100%;
-      background: #6c63ff;
-      border-radius: 4px;
-      min-width: 4px;
+      font-size: 0.72rem;
+      color: #555;
+      white-space: nowrap;
     }
 
     .error { color: #e05c5c; margin-top: 16px; font-size: 0.9rem; }
@@ -171,6 +212,8 @@
 
   <button class="btn" id="analyze-btn" disabled>Analyze</button>
   <div id="status"></div>
+  <div id="tempo"></div>
+  <div id="player"><audio id="audio" controls></audio></div>
   <div id="results"></div>
 
   <script>
@@ -179,8 +222,13 @@
     const analyzeBtn = document.getElementById('analyze-btn');
     const status = document.getElementById('status');
     const results = document.getElementById('results');
+    const player = document.getElementById('player');
+    const audio = document.getElementById('audio');
+    const tempoEl = document.getElementById('tempo');
 
     let selectedFile = null;
+    let chordData = [];
+    let activeCard = null;
 
     dropZone.addEventListener('click', () => fileInput.click());
 
@@ -207,6 +255,10 @@
       analyzeBtn.disabled = false;
       results.innerHTML = '';
       status.textContent = '';
+      player.style.display = 'none';
+      audio.src = '';
+      chordData = [];
+      tempoEl.innerHTML = '';
     }
 
     analyzeBtn.addEventListener('click', async () => {
@@ -228,7 +280,11 @@
           return;
         }
 
-        status.textContent = `Found ${data.chords.length} chord segments.`;
+        status.textContent = `Found ${data.chords.length} bars.`;
+        tempoEl.innerHTML = `Tempo: <span>${data.tempo} BPM</span>`;
+        chordData = data.chords;
+        audio.src = URL.createObjectURL(selectedFile);
+        player.style.display = 'block';
         renderChords(data.chords);
       } catch (err) {
         status.innerHTML = `<span class="error">Request failed. Is the server running?</span>`;
@@ -237,6 +293,31 @@
       }
     });
 
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const INTERVALS = {
+      'maj':  [0, 4, 7],
+      'min':  [0, 3, 7],
+      '7':    [0, 4, 7, 10],
+      'maj7': [0, 4, 7, 11],
+      'min7': [0, 3, 7, 10],
+      'dim':  [0, 3, 6],
+      'sus2': [0, 2, 7],
+      'sus4': [0, 5, 7],
+    };
+
+    function chordNotes(chordName) {
+      if (chordName === 'N.C.') return '';
+      // Match root (e.g. C, C#) and quality (e.g. maj7, min, 7)
+      const match = chordName.match(/^([A-G]#?)(.*)$/);
+      if (!match) return '';
+      const root = match[1];
+      const quality = match[2] || 'maj';
+      const rootIdx = NOTE_NAMES.indexOf(root);
+      if (rootIdx === -1) return '';
+      const intervals = INTERVALS[quality] || INTERVALS['maj'];
+      return intervals.map(i => NOTE_NAMES[(rootIdx + i) % 12]).join(' · ');
+    }
+
     function formatTime(seconds) {
       const m = Math.floor(seconds / 60);
       const s = (seconds % 60).toFixed(1).padStart(4, '0');
@@ -244,30 +325,46 @@
     }
 
     function renderChords(chords) {
-      const totalDuration = chords.length ? chords[chords.length - 1].end : 1;
       const list = document.createElement('div');
       list.className = 'chord-list';
 
-      chords.forEach(({ chord, start, end }) => {
-        const duration = end - start;
-        const widthPct = Math.max(2, (duration / totalDuration) * 100);
+      chords.forEach(({ chord, start, end, passing_tones }, i) => {
         const isNC = chord === 'N.C.';
-
-        const row = document.createElement('div');
-        row.className = 'chord-row';
-        row.innerHTML = `
+        const card = document.createElement('div');
+        card.className = 'chord-card';
+        card.dataset.index = i;
+        const notes = chordNotes(chord);
+        const passing = passing_tones && passing_tones.length ? passing_tones.join(' · ') : '';
+        card.innerHTML = `
           <div class="chord-name ${isNC ? 'nc' : ''}">${chord}</div>
+          ${notes ? `<div class="chord-notes">${notes}</div>` : ''}
+          ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
           <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
-          <div class="chord-bar-wrap">
-            <div class="chord-bar" style="width:${widthPct}%"></div>
-          </div>
         `;
-        list.appendChild(row);
+        list.appendChild(card);
       });
 
       results.innerHTML = '<h2>Detected Chords</h2>';
       results.appendChild(list);
     }
+
+    function syncChords() {
+      if (!audio.paused) {
+        const t = audio.currentTime + 0.15;
+        const i = chordData.findIndex(c => t >= c.start && t < c.end);
+        if (i !== -1) {
+          const cards = results.querySelectorAll('.chord-card');
+          if (activeCard !== cards[i]) {
+            if (activeCard) activeCard.classList.remove('active');
+            activeCard = cards[i];
+            activeCard.classList.add('active');
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+      }
+      requestAnimationFrame(syncChords);
+    }
+    requestAnimationFrame(syncChords);
   </script>
 </body>
 </html>

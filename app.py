@@ -53,39 +53,52 @@ def chroma_to_chord(chroma_vector):
     return best_chord
 
 
-def detect_chords(filepath):
+def get_passing_tones(chord_name, chroma_vector):
+    if chord_name == 'N.C.' or chord_name not in CHORD_TEMPLATES:
+        return []
+    template = CHORD_TEMPLATES[chord_name]
+    chroma = np.array(chroma_vector, dtype=float)
+    norm = np.linalg.norm(chroma)
+    if norm < 0.1:
+        return []
+    chroma = chroma / chroma.max()
+    # Non-chord tones with energy above 40% of the strongest pitch class
+    return [
+        NOTE_NAMES[i] for i, (in_chord, energy) in enumerate(zip(template, chroma))
+        if not in_chord and energy > 0.4
+    ]
+
+
+def detect_chords(filepath, beats_per_bar=4):
+    hop_length = 512
     y, sr = librosa.load(filepath, mono=True)
-    hop_length = 4096
+
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
+    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop_length)
+    tempo = float(np.atleast_1d(tempo)[0])
 
-    times = librosa.frames_to_time(np.arange(chroma.shape[1]), sr=sr, hop_length=hop_length)
-    raw_chords = [chroma_to_chord(chroma[:, i]) for i in range(chroma.shape[1])]
+    bars = []
+    beat_frames = list(beat_frames)
 
-    # Group consecutive identical chords
-    grouped = []
-    if not raw_chords:
-        return grouped
+    for i in range(0, len(beat_frames) - beats_per_bar + 1, beats_per_bar):
+        bar_start_frame = beat_frames[i]
+        bar_end_frame = beat_frames[i + beats_per_bar] if (i + beats_per_bar) < len(beat_frames) else chroma.shape[1]
 
-    current_chord = raw_chords[0]
-    start_time = float(times[0])
+        bar_chroma = chroma[:, bar_start_frame:bar_end_frame].mean(axis=1)
+        chord = chroma_to_chord(bar_chroma)
+        passing = get_passing_tones(chord, bar_chroma)
 
-    for i in range(1, len(raw_chords)):
-        if raw_chords[i] != current_chord:
-            grouped.append({
-                'chord': current_chord,
-                'start': round(start_time, 2),
-                'end': round(float(times[i]), 2),
-            })
-            current_chord = raw_chords[i]
-            start_time = float(times[i])
+        start_time = librosa.frames_to_time(bar_start_frame, sr=sr, hop_length=hop_length)
+        end_time = librosa.frames_to_time(bar_end_frame, sr=sr, hop_length=hop_length)
 
-    grouped.append({
-        'chord': current_chord,
-        'start': round(start_time, 2),
-        'end': round(float(times[-1]), 2),
-    })
+        bars.append({
+            'chord': chord,
+            'start': round(float(start_time), 2),
+            'end': round(float(end_time), 2),
+            'passing_tones': passing,
+        })
 
-    return grouped
+    return bars, round(tempo, 1)
 
 
 def allowed_file(filename):
@@ -113,8 +126,8 @@ def analyze():
     file.save(filepath)
 
     try:
-        chords = detect_chords(filepath)
-        return jsonify({'chords': chords})
+        chords, tempo = detect_chords(filepath)
+        return jsonify({'chords': chords, 'tempo': tempo})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
