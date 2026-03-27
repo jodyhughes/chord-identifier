@@ -28,12 +28,18 @@
     .subtitle {
       color: #888;
       font-size: 0.95rem;
-      margin-bottom: 48px;
+      margin-bottom: 12px;
+    }
+
+    .limitation-note {
+      font-size: 0.78rem;
+      color: #e8a838;
+      margin-bottom: 36px;
     }
 
     .drop-zone {
       width: 100%;
-      max-width: 760px;
+      max-width: 1000px;
       border: 2px dashed #333;
       border-radius: 16px;
       padding: 52px 32px;
@@ -100,6 +106,18 @@
 
     .btn-secondary:hover { background: #333; }
 
+    .resolution-select {
+      padding: 12px 16px;
+      background: #1a1a1a;
+      color: #e8e8e8;
+      border: 1px solid #444;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .resolution-select:focus { outline: none; border-color: #6c63ff; }
+
     #method-label {
       font-size: 0.8rem;
       color: #555;
@@ -116,7 +134,7 @@
     #results {
       margin-top: 40px;
       width: 100%;
-      max-width: 760px;
+      max-width: 1000px;
     }
 
     #results h2 {
@@ -129,13 +147,28 @@
     .chord-list {
       display: flex;
       flex-wrap: wrap;
+      align-items: stretch;
       gap: 8px;
+    }
+
+    .bar-group {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .bar-divider {
+      width: 1px;
+      background: #333;
+      border-radius: 1px;
+      flex-shrink: 0;
     }
 
     #player {
       display: none;
       width: 100%;
-      max-width: 760px;
+      max-width: 1000px;
       margin-top: 32px;
     }
 
@@ -148,11 +181,13 @@
     .chord-card {
       background: #1a1a1a;
       border-radius: 10px;
-      padding: 12px 16px;
+      padding: 12px 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 4px;
+      flex: 1;
       min-width: 80px;
       transition: background 0.15s, transform 0.15s;
     }
@@ -222,6 +257,7 @@
 
   <h1>Chord Identifier</h1>
   <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
+  <p class="limitation-note" id="limitation-note">Bar mode: detects one chord per bar, with automatic splitting if a chord change is detected mid-bar.</p>
 
   <div class="drop-zone" id="drop-zone">
     <div class="icon">🎵</div>
@@ -231,6 +267,11 @@
   </div>
 
   <div class="btn-row">
+    <select id="resolution" class="resolution-select">
+      <option value="4">Bar (4 beats)</option>
+      <option value="2">Half-bar (2 beats)</option>
+      <option value="1">Beat (1 beat)</option>
+    </select>
     <button class="btn" id="analyze-btn" disabled>Analyze</button>
     <button class="btn btn-secondary" id="analyze-bp-btn" disabled>Analyze with Basic Pitch</button>
   </div>
@@ -245,6 +286,18 @@
     const fileInput = document.getElementById('file-input');
     const analyzeBtn = document.getElementById('analyze-btn');
     const analyzeBpBtn = document.getElementById('analyze-bp-btn');
+    const resolutionSelect = document.getElementById('resolution');
+    const limitationNote = document.getElementById('limitation-note');
+
+    const LIMITATION_NOTES = {
+      '4': 'Bar mode: detects one chord per bar, with automatic splitting if a chord change is detected mid-bar.',
+      '2': 'Half-bar mode: detects one chord per half-bar (every 2 beats).',
+      '1': 'Beat mode: detects one chord per beat. More granular but more prone to noise.',
+    };
+
+    resolutionSelect.addEventListener('change', () => {
+      limitationNote.textContent = LIMITATION_NOTES[resolutionSelect.value];
+    });
     const status = document.getElementById('status');
     const results = document.getElementById('results');
     const player = document.getElementById('player');
@@ -300,6 +353,7 @@
 
       const formData = new FormData();
       formData.append('file', selectedFile);
+      formData.append('beats_per_bar', resolutionSelect.value);
 
       try {
         const res = await fetch(endpoint, { method: 'POST', body: formData });
@@ -363,20 +417,41 @@
       const list = document.createElement('div');
       list.className = 'chord-list';
 
-      chords.forEach(({ chord, start, end, passing_tones }, i) => {
-        const isNC = chord === 'N.C.';
-        const card = document.createElement('div');
-        card.className = 'chord-card';
-        card.dataset.index = i;
-        const notes = chordNotes(chord);
-        const passing = passing_tones && passing_tones.length ? passing_tones.join(' · ') : '';
-        card.innerHTML = `
-          <div class="chord-name ${isNC ? 'nc' : ''}">${chord}</div>
-          ${notes ? `<div class="chord-notes">${notes}</div>` : ''}
-          ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
-          <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
-        `;
-        list.appendChild(card);
+      // Group cards by bar number
+      const barMap = new Map();
+      chords.forEach((item, i) => {
+        if (!barMap.has(item.bar)) barMap.set(item.bar, []);
+        barMap.get(item.bar).push({ ...item, index: i });
+      });
+
+      const barGroups = [...barMap.values()];
+      barGroups.forEach((items, groupIdx) => {
+        const group = document.createElement('div');
+        group.className = 'bar-group';
+
+        items.forEach(({ chord, start, end, passing_tones, index }) => {
+          const isNC = chord === 'N.C.';
+          const card = document.createElement('div');
+          card.className = 'chord-card';
+          card.dataset.index = index;
+          const notes = chordNotes(chord);
+          const passing = passing_tones && passing_tones.length ? passing_tones.join(' · ') : '';
+          card.innerHTML = `
+            <div class="chord-name ${isNC ? 'nc' : ''}">${chord}</div>
+            ${notes ? `<div class="chord-notes">${notes}</div>` : ''}
+            ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
+            <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
+          `;
+          group.appendChild(card);
+        });
+
+        list.appendChild(group);
+
+        if (groupIdx < barGroups.length - 1) {
+          const divider = document.createElement('div');
+          divider.className = 'bar-divider';
+          list.appendChild(divider);
+        }
       });
 
       results.innerHTML = '<h2>Detected Chords</h2>';
@@ -389,9 +464,10 @@
         const i = chordData.findIndex(c => t >= c.start && t < c.end);
         if (i !== -1) {
           const cards = results.querySelectorAll('.chord-card');
-          if (activeCard !== cards[i]) {
+          const matchCard = [...cards].find(c => parseInt(c.dataset.index) === i);
+          if (activeCard !== matchCard) {
             if (activeCard) activeCard.classList.remove('active');
-            activeCard = cards[i];
+            activeCard = matchCard;
             activeCard.classList.add('active');
             activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
           }

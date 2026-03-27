@@ -69,6 +69,32 @@ def get_passing_tones(chord_name, chroma_vector):
     ]
 
 
+def should_split(chroma_a, chroma_b, threshold=0.25):
+    """Return True if two chroma vectors differ enough to indicate a chord change."""
+    na, nb = np.linalg.norm(chroma_a), np.linalg.norm(chroma_b)
+    if na < 0.1 or nb < 0.1:
+        return False
+    cos_sim = np.dot(chroma_a / na, chroma_b / nb)
+    return cos_sim < (1 - threshold)
+
+
+def make_bar(chord, passing, start, end):
+    return {
+        'chord': chord,
+        'start': round(float(start), 2),
+        'end': round(float(end), 2),
+        'passing_tones': passing,
+    }
+
+
+def notes_to_chroma(notes, start, end):
+    chroma = np.zeros(12)
+    for note_start, note_end, pitch_class in notes:
+        if note_start < end and note_end > start:
+            chroma[pitch_class] += 1.0
+    return chroma
+
+
 def detect_chords(filepath, beats_per_bar=4):
     hop_length = 512
     y, sr = librosa.load(filepath, mono=True)
@@ -76,27 +102,35 @@ def detect_chords(filepath, beats_per_bar=4):
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop_length)
     tempo = float(np.atleast_1d(tempo)[0])
-
-    bars = []
     beat_frames = list(beat_frames)
 
+    bars = []
+    do_adaptive = beats_per_bar >= 4
+
     for i in range(0, len(beat_frames) - beats_per_bar + 1, beats_per_bar):
+        bar_num = i // 4
         bar_start_frame = beat_frames[i]
         bar_end_frame = beat_frames[i + beats_per_bar] if (i + beats_per_bar) < len(beat_frames) else chroma.shape[1]
 
+        if do_adaptive:
+            mid_beat = i + beats_per_bar // 2
+            mid_frame = beat_frames[mid_beat] if mid_beat < len(beat_frames) else (bar_start_frame + bar_end_frame) // 2
+            chroma_a = chroma[:, bar_start_frame:mid_frame].mean(axis=1)
+            chroma_b = chroma[:, mid_frame:bar_end_frame].mean(axis=1)
+
+            if should_split(chroma_a, chroma_b):
+                for (sf, ef, ch) in [(bar_start_frame, mid_frame, chroma_a), (mid_frame, bar_end_frame, chroma_b)]:
+                    chord = chroma_to_chord(ch)
+                    t_start = librosa.frames_to_time(sf, sr=sr, hop_length=hop_length)
+                    t_end = librosa.frames_to_time(ef, sr=sr, hop_length=hop_length)
+                    bars.append({**make_bar(chord, get_passing_tones(chord, ch), t_start, t_end), 'bar': bar_num})
+                continue
+
         bar_chroma = chroma[:, bar_start_frame:bar_end_frame].mean(axis=1)
         chord = chroma_to_chord(bar_chroma)
-        passing = get_passing_tones(chord, bar_chroma)
-
-        start_time = librosa.frames_to_time(bar_start_frame, sr=sr, hop_length=hop_length)
-        end_time = librosa.frames_to_time(bar_end_frame, sr=sr, hop_length=hop_length)
-
-        bars.append({
-            'chord': chord,
-            'start': round(float(start_time), 2),
-            'end': round(float(end_time), 2),
-            'passing_tones': passing,
-        })
+        t_start = librosa.frames_to_time(bar_start_frame, sr=sr, hop_length=hop_length)
+        t_end = librosa.frames_to_time(bar_end_frame, sr=sr, hop_length=hop_length)
+        bars.append({**make_bar(chord, get_passing_tones(chord, bar_chroma), t_start, t_end), 'bar': bar_num})
 
     return bars, round(tempo, 1)
 
@@ -107,13 +141,12 @@ def detect_chords_basic_pitch(filepath, beats_per_bar=4):
 
     _, midi_data, _ = predict(filepath, ICASSP_2022_MODEL_PATH)
 
-    # Collect all note events as (start, end, pitch_class)
-    notes = []
-    for instrument in midi_data.instruments:
-        for note in instrument.notes:
-            notes.append((note.start, note.end, note.pitch % 12))
+    notes = [
+        (note.start, note.end, note.pitch % 12)
+        for instrument in midi_data.instruments
+        for note in instrument.notes
+    ]
 
-    # Use librosa for beat tracking
     hop_length = 512
     y, sr = librosa.load(filepath, mono=True)
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop_length)
@@ -121,25 +154,28 @@ def detect_chords_basic_pitch(filepath, beats_per_bar=4):
     beat_times = librosa.frames_to_time(beat_frames, sr=sr, hop_length=hop_length).tolist()
 
     bars = []
+    do_adaptive = beats_per_bar >= 4
+
     for i in range(0, len(beat_times) - beats_per_bar + 1, beats_per_bar):
+        bar_num = i // 4
         bar_start = float(beat_times[i])
         bar_end = float(beat_times[i + beats_per_bar]) if (i + beats_per_bar) < len(beat_times) else float(beat_times[-1])
 
-        # Build chroma from notes active in this bar
-        chroma = np.zeros(12)
-        for note_start, note_end, pitch_class in notes:
-            if note_start < bar_end and note_end > bar_start:
-                chroma[pitch_class] += 1.0
+        if do_adaptive:
+            mid_beat = i + beats_per_bar // 2
+            bar_mid = float(beat_times[mid_beat]) if mid_beat < len(beat_times) else (bar_start + bar_end) / 2
+            chroma_a = notes_to_chroma(notes, bar_start, bar_mid)
+            chroma_b = notes_to_chroma(notes, bar_mid, bar_end)
 
+            if should_split(chroma_a, chroma_b):
+                for (s, e, ch) in [(bar_start, bar_mid, chroma_a), (bar_mid, bar_end, chroma_b)]:
+                    chord = chroma_to_chord(ch)
+                    bars.append({**make_bar(chord, get_passing_tones(chord, ch), s, e), 'bar': bar_num})
+                continue
+
+        chroma = notes_to_chroma(notes, bar_start, bar_end)
         chord = chroma_to_chord(chroma)
-        passing = get_passing_tones(chord, chroma)
-
-        bars.append({
-            'chord': chord,
-            'start': round(bar_start, 2),
-            'end': round(bar_end, 2),
-            'passing_tones': passing,
-        })
+        bars.append({**make_bar(chord, get_passing_tones(chord, chroma), bar_start, bar_end), 'bar': bar_num})
 
     return bars, round(tempo, 1)
 
@@ -169,7 +205,8 @@ def analyze():
     file.save(filepath)
 
     try:
-        chords, tempo = detect_chords(filepath)
+        beats_per_bar = int(request.form.get('beats_per_bar', 4))
+        chords, tempo = detect_chords(filepath, beats_per_bar)
         return jsonify({'chords': chords, 'tempo': tempo})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -193,7 +230,8 @@ def analyze_basic_pitch():
     file.save(filepath)
 
     try:
-        chords, tempo = detect_chords_basic_pitch(filepath)
+        beats_per_bar = int(request.form.get('beats_per_bar', 4))
+        chords, tempo = detect_chords_basic_pitch(filepath, beats_per_bar)
         return jsonify({'chords': chords, 'tempo': tempo})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
