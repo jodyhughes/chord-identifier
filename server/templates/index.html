@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chord Identifier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+
+    .limitation-note {
+      font-size: 0.78rem;
+      color: #e8a838;
+      margin-bottom: 36px;
+    }
+
+    .drop-zone {
+      width: 100%;
+      max-width: 1000px;
+      border: 2px dashed #333;
+      border-radius: 16px;
+      padding: 52px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #6c63ff;
+      background: #16141f;
+    }
+
+    .drop-zone .icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .drop-zone p {
+      color: #aaa;
+      font-size: 0.95rem;
+    }
+
+    .drop-zone span {
+      color: #6c63ff;
+      font-weight: 600;
+    }
+
+    .formats {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    #file-input { display: none; }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 12px 32px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .btn:hover { background: #5a52d5; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #2a2a2a;
+      border: 1px solid #444;
+    }
+
+    .btn-secondary:hover { background: #333; }
+
+    .resolution-select {
+      padding: 12px 16px;
+      background: #1a1a1a;
+      color: #e8e8e8;
+      border: 1px solid #444;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .resolution-select:focus { outline: none; border-color: #6c63ff; }
+
+    #method-label {
+      font-size: 0.8rem;
+      color: #555;
+      margin-top: 8px;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #888;
+      min-height: 22px;
+    }
+
+    #results {
+      margin-top: 40px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    #results h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #ccc;
+    }
+
+    .chord-list {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .bar-group {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .bar-divider {
+      width: 1px;
+      background: #333;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    #player {
+      display: none;
+      width: 100%;
+      max-width: 1000px;
+      margin-top: 32px;
+    }
+
+    #player audio {
+      width: 100%;
+      border-radius: 10px;
+      accent-color: #6c63ff;
+    }
+
+    .chord-card {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex: 1;
+      min-width: 80px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .chord-card.active {
+      background: #2a2560;
+      transform: scale(1.08);
+    }
+
+    .chord-card.active .chord-name {
+      color: #a89fff;
+    }
+
+    .chord-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #6c63ff;
+    }
+
+    .chord-name.nc {
+      color: #444;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    #tempo {
+      font-size: 0.9rem;
+      color: #888;
+      margin-top: 12px;
+    }
+
+    #tempo span {
+      color: #e8e8e8;
+      font-weight: 600;
+    }
+
+    .chord-notes {
+      font-size: 0.75rem;
+      color: #888;
+      letter-spacing: 0.03em;
+    }
+
+    .chord-card.active .chord-notes {
+      color: #a89fff;
+    }
+
+    .chord-passing {
+      font-size: 0.68rem;
+      color: #e8a838;
+      letter-spacing: 0.03em;
+    }
+
+    .chord-card.active .chord-passing {
+      color: #ffc96b;
+    }
+
+    .chord-time {
+      font-size: 0.72rem;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .error { color: #e05c5c; margin-top: 16px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <h1>Chord Identifier</h1>
+  <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
+  <p class="limitation-note" id="limitation-note">Bar mode: detects one chord per bar, with automatic splitting if a chord change is detected mid-bar.</p>
+
+  <div class="drop-zone" id="drop-zone">
+    <div class="icon">🎵</div>
+    <p><span>Choose a file</span> or drag and drop here</p>
+    <p class="formats">MP3 · WAV · FLAC · OGG · M4A — up to 50MB</p>
+    <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a" />
+  </div>
+
+  <div class="btn-row">
+    <select id="resolution" class="resolution-select">
+      <option value="4">Bar (4 beats)</option>
+      <option value="2">Half-bar (2 beats)</option>
+      <option value="1">Beat (1 beat)</option>
+    </select>
+    <button class="btn" id="analyze-btn" disabled>Analyze</button>
+    <button class="btn btn-secondary" id="analyze-bp-btn" disabled>Analyze with Basic Pitch</button>
+  </div>
+  <div id="status"></div>
+  <div id="method-label"></div>
+  <div id="tempo"></div>
+  <div id="player"><audio id="audio" controls></audio></div>
+  <div id="results"></div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const analyzeBpBtn = document.getElementById('analyze-bp-btn');
+    const resolutionSelect = document.getElementById('resolution');
+    const limitationNote = document.getElementById('limitation-note');
+
+    const LIMITATION_NOTES = {
+      '4': 'Bar mode: detects one chord per bar, with automatic splitting if a chord change is detected mid-bar.',
+      '2': 'Half-bar mode: detects one chord per half-bar (every 2 beats).',
+      '1': 'Beat mode: detects one chord per beat. More granular but more prone to noise.',
+    };
+
+    resolutionSelect.addEventListener('change', () => {
+      limitationNote.textContent = LIMITATION_NOTES[resolutionSelect.value];
+    });
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+    const player = document.getElementById('player');
+    const audio = document.getElementById('audio');
+    const tempoEl = document.getElementById('tempo');
+    const methodLabel = document.getElementById('method-label');
+
+    let selectedFile = null;
+    let chordData = [];
+    let activeCard = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      dropZone.querySelector('p').innerHTML = `<span>${file.name}</span>`;
+      analyzeBtn.disabled = false;
+      analyzeBpBtn.disabled = false;
+      results.innerHTML = '';
+      status.textContent = '';
+      player.style.display = 'none';
+      audio.src = '';
+      chordData = [];
+      tempoEl.innerHTML = '';
+      methodLabel.textContent = '';
+    }
+
+    async function runAnalysis(endpoint, label) {
+      if (!selectedFile) return;
+
+      analyzeBtn.disabled = true;
+      analyzeBpBtn.disabled = true;
+      status.textContent = 'Analyzing... this may take a moment.';
+      results.innerHTML = '';
+      activeCard = null;
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('beats_per_bar', resolutionSelect.value);
+
+      try {
+        const res = await fetch(endpoint, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.error) {
+          status.innerHTML = `<span class="error">Error: ${data.error}</span>`;
+          return;
+        }
+
+        status.textContent = `Found ${data.chords.length} bars.`;
+        methodLabel.textContent = `Method: ${label}`;
+        tempoEl.innerHTML = `Tempo: <span>${data.tempo} BPM</span>`;
+        chordData = data.chords;
+        audio.src = URL.createObjectURL(selectedFile);
+        player.style.display = 'block';
+        renderChords(data.chords);
+      } catch (err) {
+        status.innerHTML = `<span class="error">Request failed. Is the server running?</span>`;
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBpBtn.disabled = false;
+      }
+    }
+
+    analyzeBtn.addEventListener('click', () => runAnalysis('/analyze', 'Chroma (librosa)'));
+    analyzeBpBtn.addEventListener('click', () => runAnalysis('/analyze-basic-pitch', 'Basic Pitch'));
+
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const INTERVALS = {
+      'maj':  [0, 4, 7],
+      'min':  [0, 3, 7],
+      '7':    [0, 4, 7, 10],
+      'maj7': [0, 4, 7, 11],
+      'min7': [0, 3, 7, 10],
+      'dim':  [0, 3, 6],
+      'sus2': [0, 2, 7],
+      'sus4': [0, 5, 7],
+    };
+
+    function chordNotes(chordName) {
+      if (chordName === 'N.C.') return '';
+      // Match root (e.g. C, C#) and quality (e.g. maj7, min, 7)
+      const match = chordName.match(/^([A-G]#?)(.*)$/);
+      if (!match) return '';
+      const root = match[1];
+      const quality = match[2] || 'maj';
+      const rootIdx = NOTE_NAMES.indexOf(root);
+      if (rootIdx === -1) return '';
+      const intervals = INTERVALS[quality] || INTERVALS['maj'];
+      return intervals.map(i => NOTE_NAMES[(rootIdx + i) % 12]).join(' · ');
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = (seconds % 60).toFixed(1).padStart(4, '0');
+      return `${m}:${s}`;
+    }
+
+    function renderChords(chords) {
+      const list = document.createElement('div');
+      list.className = 'chord-list';
+
+      // Group cards by bar number
+      const barMap = new Map();
+      chords.forEach((item, i) => {
+        if (!barMap.has(item.bar)) barMap.set(item.bar, []);
+        barMap.get(item.bar).push({ ...item, index: i });
+      });
+
+      const barGroups = [...barMap.values()];
+      barGroups.forEach((items, groupIdx) => {
+        const group = document.createElement('div');
+        group.className = 'bar-group';
+
+        items.forEach(({ chord, start, end, passing_tones, index }) => {
+          const isNC = chord === 'N.C.';
+          const card = document.createElement('div');
+          card.className = 'chord-card';
+          card.dataset.index = index;
+          card.addEventListener('click', () => { audio.currentTime = start; audio.play(); });
+          const notes = chordNotes(chord);
+          const passing = passing_tones && passing_tones.length ? passing_tones.join(' · ') : '';
+          card.innerHTML = `
+            <div class="chord-name ${isNC ? 'nc' : ''}">${chord}</div>
+            ${notes ? `<div class="chord-notes">${notes}</div>` : ''}
+            ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
+            <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
+          `;
+          group.appendChild(card);
+        });
+
+        list.appendChild(group);
+
+        if (groupIdx < barGroups.length - 1) {
+          const divider = document.createElement('div');
+          divider.className = 'bar-divider';
+          list.appendChild(divider);
+        }
+      });
+
+      results.innerHTML = '<h2>Detected Chords</h2>';
+      results.appendChild(list);
+    }
+
+    function syncChords() {
+      if (!audio.paused) {
+        const t = audio.currentTime + 0.15;
+        const i = chordData.findIndex(c => t >= c.start && t < c.end);
+        if (i !== -1) {
+          const cards = results.querySelectorAll('.chord-card');
+          const matchCard = [...cards].find(c => parseInt(c.dataset.index) === i);
+          if (activeCard !== matchCard) {
+            if (activeCard) activeCard.classList.remove('active');
+            activeCard = matchCard;
+            activeCard.classList.add('active');
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+      }
+      requestAnimationFrame(syncChords);
+    }
+    requestAnimationFrame(syncChords);
+  </script>
+</body>
+</html>

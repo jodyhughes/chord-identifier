@@ -1,10 +1,11 @@
 import os
 import numpy as np
-import librosa
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB limit
 UPLOAD_FOLDER = '/tmp/chord-identifier'
 ALLOWED_EXTENSIONS = {'mp3', 'wav', 'flac', 'ogg', 'm4a'}
@@ -239,5 +240,42 @@ def analyze_basic_pitch():
         os.remove(filepath)
 
 
+_whisper_model = None
+
+def get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        import whisper
+        _whisper_model = whisper.load_model('base')
+    return _whisper_model
+
+
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if not file.filename or not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file'}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+
+    try:
+        model = get_whisper_model()
+        result = model.transcribe(filepath, task='transcribe')
+        segments = [
+            {'start': round(s['start'], 2), 'end': round(s['end'], 2), 'text': s['text'].strip()}
+            for s in result['segments']
+        ]
+        return jsonify({'segments': segments, 'language': result.get('language', '')})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        os.remove(filepath)
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chord Identifier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+
+    .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 12px; }
+
+    .limitation-note { font-size: 0.78rem; color: #e8a838; margin-bottom: 36px; }
+
+    .drop-zone {
+      width: 100%; max-width: 1000px;
+      border: 2px dashed #333; border-radius: 16px;
+      padding: 52px 32px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #6c63ff; background: #16141f; }
+    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .drop-zone p { color: #aaa; font-size: 0.95rem; }
+    .drop-zone span { color: #6c63ff; font-weight: 600; }
+    .formats { margin-top: 8px; font-size: 0.8rem; color: #555; }
+    #file-input { display: none; }
+
+    .btn-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+    .resolution-select {
+      padding: 12px 16px; background: #1a1a1a; color: #e8e8e8;
+      border: 1px solid #444; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+    }
+    .resolution-select:focus { outline: none; border-color: #6c63ff; }
+
+    .btn {
+      padding: 12px 32px; background: #6c63ff; color: #fff;
+      border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.2s, opacity 0.2s;
+    }
+    .btn:hover { background: #5a52d5; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #method-label { font-size: 0.8rem; color: #555; margin-top: 8px; }
+    #status { margin-top: 20px; font-size: 0.9rem; color: #888; min-height: 22px; }
+
+    #progress-wrap {
+      display: none; width: 100%; max-width: 1000px;
+      height: 4px; background: #222; border-radius: 2px; margin-top: 12px; overflow: hidden;
+    }
+    #progress-bar { height: 100%; width: 0%; background: #6c63ff; transition: width 0.2s; border-radius: 2px; }
+
+    #tempo { font-size: 0.9rem; color: #888; margin-top: 12px; }
+    #tempo span { color: #e8e8e8; font-weight: 600; }
+
+    #player { display: none; width: 100%; max-width: 1000px; margin-top: 32px; }
+    #player audio { width: 100%; border-radius: 10px; accent-color: #6c63ff; }
+
+    #results { margin-top: 40px; width: 100%; max-width: 1000px; }
+    #results h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #ccc; }
+
+    .chord-list { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+
+    .bar-wrap { flex: 1; display: flex; }
+
+    .bar-group { display: flex; gap: 8px; align-items: stretch; width: 100%; }
+
+    .bar-divider { width: 1px; background: #333; border-radius: 1px; flex-shrink: 0; }
+
+    .chord-card {
+      background: #1a1a1a; border-radius: 10px; padding: 12px 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; flex: 1; min-width: 80px; cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .chord-card:hover { background: #222; }
+    .chord-card.active { background: #2a2560; transform: scale(1.08); }
+
+    .chord-name { font-size: 1.1rem; font-weight: 700; color: #6c63ff; }
+    .chord-name.nc { color: #444; font-weight: 400; font-style: italic; }
+    .chord-card.active .chord-name { color: #a89fff; }
+
+    .chord-notes { font-size: 0.75rem; color: #888; letter-spacing: 0.03em; }
+    .chord-card.active .chord-notes { color: #a89fff; }
+
+    .chord-passing { font-size: 0.68rem; color: #e8a838; letter-spacing: 0.03em; }
+    .chord-card.active .chord-passing { color: #ffc96b; }
+
+    .chord-time { font-size: 0.72rem; color: #555; white-space: nowrap; }
+
+    .error { color: #e05c5c; }
+
+
+  </style>
+</head>
+<body>
+  <h1>Chord Identifier</h1>
+  <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
+  <p class="limitation-note" id="limitation-note">Bar mode: one chord per bar, with automatic splitting if a chord change is detected mid-bar.</p>
+
+  <div class="drop-zone" id="drop-zone">
+    <div class="icon">🎵</div>
+    <p class="drop-label"><span>Choose a file</span> or drag and drop here</p>
+    <p class="formats">MP3 · WAV · FLAC · OGG · M4A</p>
+    <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a" />
+  </div>
+
+  <div class="btn-row">
+    <select id="resolution" class="resolution-select">
+      <option value="4">Bar (4 beats)</option>
+      <option value="2">Half-bar (2 beats)</option>
+      <option value="1">Beat (1 beat)</option>
+    </select>
+    <button class="btn" id="analyze-btn" disabled>Analyze</button>
+  </div>
+
+  <div id="method-label"></div>
+  <div id="status"></div>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <div id="tempo"></div>
+  <div id="player"><audio id="audio" controls></audio></div>
+  <div id="results"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
