@@ -189,6 +189,7 @@
       gap: 4px;
       flex: 1;
       min-width: 80px;
+      cursor: pointer;
       transition: background 0.15s, transform 0.15s;
     }
 
@@ -434,6 +435,7 @@
           const card = document.createElement('div');
           card.className = 'chord-card';
           card.dataset.index = index;
+          card.addEventListener('click', () => { audio.currentTime = start; audio.play(); });
           const notes = chordNotes(chord);
           const passing = passing_tones && passing_tones.length ? passing_tones.join(' · ') : '';
           card.innerHTML = `

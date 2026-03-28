@@ -1,19 +1,26 @@
 import { decodeAudio, runBasicPitch, buildBarsAndChords } from './analysis.js';
 import { chordNotes } from './chords.js';
+import { exportChordsToMidi } from './export.js';
 
 const dropZone    = document.getElementById('drop-zone');
 const fileInput   = document.getElementById('file-input');
 const analyzeBtn  = document.getElementById('analyze-btn');
+const exportMidiBtn = document.getElementById('export-midi-btn');
+const includeTempoCheckbox = document.getElementById('include-tempo');
 const statusEl    = document.getElementById('status');
 const progressWrap = document.getElementById('progress-wrap');
 const progressBar = document.getElementById('progress-bar');
 const tempoEl     = document.getElementById('tempo');
+const tempoControls = document.getElementById('tempo-controls');
+const bpmHalveBtn = document.getElementById('bpm-halve');
+const bpmDoubleBtn = document.getElementById('bpm-double');
 const methodLabel = document.getElementById('method-label');
 const playerEl    = document.getElementById('player');
 const audio       = document.getElementById('audio');
 const resultsEl   = document.getElementById('results');
 const resolution  = document.getElementById('resolution');
 const limitNote   = document.getElementById('limitation-note');
+let currentBpm    = 120;
 
 const LIMITATION_NOTES = {
   '4': 'Bar mode: one chord per bar, with automatic splitting if a chord change is detected mid-bar.',
@@ -23,6 +30,30 @@ const LIMITATION_NOTES = {
 
 resolution.addEventListener('change', () => {
   limitNote.textContent = LIMITATION_NOTES[resolution.value];
+});
+
+exportMidiBtn.addEventListener('click', () => {
+  if (chordData.length === 0) return;
+  const filename = `chords-${new Date().toISOString().split('T')[0]}.mid`;
+  const includeTempoEvent = includeTempoCheckbox.checked;
+  
+  exportChordsToMidi(chordData, currentBpm, filename, includeTempoEvent);
+  statusEl.textContent = 'MIDI file downloaded!';
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+});
+
+function updateTempoDisplay() {
+  tempoEl.innerHTML = `Tempo: <span>${currentBpm} BPM</span>`;
+}
+
+bpmHalveBtn.addEventListener('click', () => {
+  currentBpm = parseFloat((currentBpm / 2).toFixed(1));
+  updateTempoDisplay();
+});
+
+bpmDoubleBtn.addEventListener('click', () => {
+  currentBpm = parseFloat((currentBpm * 2).toFixed(1));
+  updateTempoDisplay();
 });
 
 let selectedFile = null;
@@ -58,6 +89,8 @@ function reset() {
   activeCard = null;
   progressWrap.style.display = 'none';
   progressBar.style.width = '0%';
+  exportMidiBtn.disabled = true;
+  tempoControls.style.display = 'none';
 }
 
 // --- Analysis ---
@@ -80,7 +113,10 @@ analyzeBtn.addEventListener('click', async () => {
     statusEl.textContent = 'Detecting chords…';
     const beatsPerBar = parseInt(resolution.value);
     const { bars, bpm } = buildBarsAndChords(notes, audioBuffer.duration, beatsPerBar);
-
+    currentBpm = bpm;
+    exportMidiBtn.disabled = false;
+    tempoControls.style.display = 'flex';
+    
     chordData = bars;
     tempoEl.innerHTML = `Tempo: <span>${bpm} BPM</span>`;
     methodLabel.textContent = 'Method: Basic Pitch';

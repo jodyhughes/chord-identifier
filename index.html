@@ -53,6 +53,10 @@
     .btn:hover { background: #5a52d5; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    .btn-small {
+      padding: 8px 16px; font-size: 0.9rem;
+    }
+
     #method-label { font-size: 0.8rem; color: #555; margin-top: 8px; }
     #status { margin-top: 20px; font-size: 0.9rem; color: #888; min-height: 22px; }
 
@@ -124,12 +128,21 @@
       <option value="1">Beat (1 beat)</option>
     </select>
     <button class="btn" id="analyze-btn" disabled>Analyze</button>
+    <button class="btn" id="export-midi-btn" disabled>Export as MIDI</button>
+    <label style="display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 0.9rem;">
+      <input type="checkbox" id="include-tempo" style="cursor: pointer;" />
+      Include tempo in MIDI
+    </label>
   </div>
 
   <div id="method-label"></div>
   <div id="status"></div>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
-  <div id="tempo"></div>
+  <div id="tempo-controls" style="display: none; align-items: center; gap: 12px;">
+    <div id="tempo"></div>
+    <button class="btn btn-small" id="bpm-halve">÷2</button>
+    <button class="btn btn-small" id="bpm-double">×2</button>
+  </div>
   <div id="player"><audio id="audio" controls></audio></div>
   <div id="results"></div>
 

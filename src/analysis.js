@@ -62,6 +62,7 @@ function estimateBPM(notes) {
 
   const sigma = 0.025;
   let bestBPM = 120, bestScore = -1;
+  const allScores = new Map(); // Store scores for all BPMs
 
   for (let bpm = 60; bpm <= 200; bpm += 0.5) {
     const period = 60 / bpm;
@@ -71,7 +72,18 @@ function estimateBPM(notes) {
       const dist = Math.min(phase, period - phase);
       score += Math.exp(-(dist * dist) / (2 * sigma * sigma));
     }
+    allScores.set(bpm, score);
     if (score > bestScore) { bestScore = score; bestBPM = bpm; }
+  }
+
+  // Check if we're detecting double-beat: if half the BPM has similar score, use that instead
+  const halfBPM = bestBPM / 2;
+  if (halfBPM >= 60 && allScores.has(halfBPM)) {
+    const halfScore = allScores.get(halfBPM);
+    // If half-BPM score is within 85% of best, prefer the lower tempo (more natural)
+    if (halfScore > bestScore * 0.85) {
+      bestBPM = halfBPM;
+    }
   }
 
   return { bpm: Math.round(bestBPM * 2) / 2, beatPeriod: 60 / bestBPM };
