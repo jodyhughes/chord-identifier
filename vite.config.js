@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/chord-identifier/',
+  base: '/',
   optimizeDeps: {
     include: ['@tonejs/midi'],
   },
