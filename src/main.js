@@ -62,6 +62,12 @@ let activeCard = null;
 
 // --- File selection ---
 dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    fileInput.click();
+  }
+});
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -167,13 +173,23 @@ function renderChords(chords) {
       const card = document.createElement('div');
       card.className = 'chord-card';
       card.dataset.index = index;
+      card.role = 'button';
+      card.tabIndex = 0;
+      card.setAttribute('aria-label', `${chord} chord, ${formatTime(start)} to ${formatTime(end)}`);
       card.innerHTML = `
         <div class="chord-name${isNC ? ' nc' : ''}">${chord}</div>
         ${notes  ? `<div class="chord-notes">${notes}</div>`   : ''}
         ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
         <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
       `;
-      card.addEventListener('click', () => { audio.currentTime = start; audio.play(); });
+      const playChord = () => { audio.currentTime = start; audio.play(); };
+      card.addEventListener('click', playChord);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          playChord();
+        }
+      });
       group.appendChild(card);
     });
 
