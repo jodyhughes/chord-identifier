@@ -7,73 +7,167 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:           #f5f5f7;
+      --bg-card:      #ffffff;
+      --bg-hover:     #f0f6ff;
+      --bg-input:     #ffffff;
+      --text-primary: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-muted:   #aeaeb2;
+      --border:       #d2d2d7;
+      --border-drop:  #c7c7cc;
+      --divider:      #e5e5ea;
+      --accent:       #0071e3;
+      --accent-hover: #0077ed;
+      --accent-active-bg: #0071e3;
+      --accent-glow:  rgba(0,113,227,0.2);
+      --progress-bg:  #e5e5ea;
+      --card-shadow:  0 1px 3px rgba(0,0,0,0.07);
+      --card-shadow-hover: 0 2px 10px rgba(0,0,0,0.1);
+      --card-active-shadow: 0 4px 16px rgba(0,113,227,0.3);
+      --passing:      #ff9500;
+      --passing-active: #ffe599;
+      --error:        #ff3b30;
+      --toggle-bg:    #e5e5ea;
+      --toggle-active: #0071e3;
+    }
+
+    [data-theme="dark"] {
+      --bg:           #0f0f0f;
+      --bg-card:      #1a1a1a;
+      --bg-hover:     #16141f;
+      --bg-input:     #1a1a1a;
+      --text-primary: #e8e8e8;
+      --text-secondary: #888;
+      --text-muted:   #555;
+      --border:       #444;
+      --border-drop:  #333;
+      --divider:      #333;
+      --accent:       #6c63ff;
+      --accent-hover: #7a72ff;
+      --accent-active-bg: #2a2560;
+      --accent-glow:  rgba(108,99,255,0.2);
+      --progress-bg:  #222;
+      --card-shadow:  0 1px 3px rgba(0,0,0,0.3);
+      --card-shadow-hover: 0 2px 10px rgba(0,0,0,0.4);
+      --card-active-shadow: 0 4px 16px rgba(108,99,255,0.3);
+      --passing:      #e8a838;
+      --passing-active: #ffc96b;
+      --error:        #e05c5c;
+      --toggle-bg:    #2a2a2a;
+      --toggle-active: #6c63ff;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 60px 20px;
+      padding: 72px 20px;
+      transition: background 0.25s, color 0.25s;
     }
 
-    h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      position: fixed; top: 20px; right: 24px;
+      display: flex; gap: 2px;
+      background: var(--toggle-bg);
+      border-radius: 980px;
+      padding: 3px;
+      transition: background 0.25s;
+      z-index: 100;
+    }
 
-    .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 12px; }
+    .theme-toggle button {
+      background: transparent; border: none; cursor: pointer;
+      padding: 5px 12px; border-radius: 980px;
+      font-size: 0.78rem; font-weight: 500;
+      color: var(--text-secondary);
+      font-family: inherit;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
 
-    .limitation-note { font-size: 0.78rem; color: #e8a838; margin-bottom: 36px; }
+    .theme-toggle button.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    [data-theme="dark"] .theme-toggle button.active {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    /* ── Layout ── */
+    h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
+
+    .subtitle { color: var(--text-secondary); font-size: 1rem; margin-bottom: 10px; }
+
+    .limitation-note { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 40px; }
 
     .drop-zone {
       width: 100%; max-width: 1000px;
-      border: 2px dashed #333; border-radius: 16px;
+      border: 1.5px dashed var(--border-drop); border-radius: 18px;
+      background: var(--bg-card);
       padding: 52px 32px; text-align: center; cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      box-shadow: var(--card-shadow);
     }
-    .drop-zone:hover, .drop-zone.dragover { border-color: #6c63ff; background: #16141f; }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: var(--bg-hover);
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
     .drop-zone .icon { font-size: 2.5rem; margin-bottom: 16px; }
-    .drop-zone p { color: #aaa; font-size: 0.95rem; }
-    .drop-zone span { color: #6c63ff; font-weight: 600; }
-    .formats { margin-top: 8px; font-size: 0.8rem; color: #555; }
+    .drop-zone p { color: var(--text-secondary); font-size: 0.95rem; }
+    .drop-zone span { color: var(--accent); font-weight: 600; }
+    .formats { margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); }
     #file-input { display: none; }
 
     .btn-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; justify-content: center; align-items: center; }
 
     .resolution-select {
-      padding: 12px 16px; background: #1a1a1a; color: #e8e8e8;
-      border: 1px solid #444; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+      padding: 10px 14px; background: var(--bg-input); color: var(--text-primary);
+      border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+      font-family: inherit; transition: background 0.25s, color 0.25s, border-color 0.25s;
     }
-    .resolution-select:focus { outline: none; border-color: #6c63ff; }
+    .resolution-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 
     .btn {
-      padding: 12px 32px; background: #6c63ff; color: #fff;
-      border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+      padding: 11px 28px; background: var(--accent); color: #fff;
+      border: none; border-radius: 980px; font-size: 0.95rem; font-weight: 600;
       cursor: pointer; transition: background 0.2s, opacity 0.2s;
+      font-family: inherit; letter-spacing: -0.01em;
     }
-    .btn:hover { background: #5a52d5; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    .btn-small {
-      padding: 8px 16px; font-size: 0.9rem;
-    }
+    .btn-small { padding: 7px 16px; font-size: 0.85rem; }
 
-    #method-label { font-size: 0.8rem; color: #555; margin-top: 8px; }
-    #status { margin-top: 20px; font-size: 0.9rem; color: #888; min-height: 22px; }
+    #method-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+    #status { margin-top: 20px; font-size: 0.9rem; color: var(--text-secondary); min-height: 22px; }
 
     #progress-wrap {
       display: none; width: 100%; max-width: 1000px;
-      height: 4px; background: #222; border-radius: 2px; margin-top: 12px; overflow: hidden;
+      height: 3px; background: var(--progress-bg); border-radius: 2px; margin-top: 12px; overflow: hidden;
     }
-    #progress-bar { height: 100%; width: 0%; background: #6c63ff; transition: width 0.2s; border-radius: 2px; }
+    #progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s; border-radius: 2px; }
 
-    #tempo { font-size: 0.9rem; color: #888; margin-top: 12px; }
-    #tempo span { color: #e8e8e8; font-weight: 600; }
+    #tempo { font-size: 0.9rem; color: var(--text-secondary); margin-top: 12px; }
+    #tempo span { color: var(--text-primary); font-weight: 600; }
 
     #player { display: none; width: 100%; max-width: 1000px; margin-top: 32px; }
-    #player audio { width: 100%; border-radius: 10px; accent-color: #6c63ff; }
+    #player audio { width: 100%; border-radius: 10px; accent-color: var(--accent); }
 
     #results { margin-top: 40px; width: 100%; max-width: 1000px; }
-    #results h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #ccc; }
+    #results h2 {
+      font-size: 0.75rem; font-weight: 600; margin-bottom: 16px;
+      color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
+    }
 
     .chord-list { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
 
@@ -81,35 +175,47 @@
 
     .bar-group { display: flex; gap: 8px; align-items: stretch; width: 100%; }
 
-    .bar-divider { width: 1px; background: #333; border-radius: 1px; flex-shrink: 0; }
+    .bar-divider { width: 1px; background: var(--divider); border-radius: 1px; flex-shrink: 0; }
 
     .chord-card {
-      background: #1a1a1a; border-radius: 10px; padding: 12px 8px;
+      background: var(--bg-card); border-radius: 12px; padding: 14px 8px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 4px; flex: 1; min-width: 80px; cursor: pointer;
-      transition: background 0.15s, transform 0.15s;
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+      box-shadow: var(--card-shadow);
     }
-    .chord-card:hover { background: #222; }
-    .chord-card.active { background: #2a2560; transform: scale(1.08); }
+    .chord-card:hover { background: var(--bg-hover); box-shadow: var(--card-shadow-hover); }
+    .chord-card.active { background: var(--accent-active-bg); transform: scale(1.06); box-shadow: var(--card-active-shadow); }
 
-    .chord-name { font-size: 1.1rem; font-weight: 700; color: #6c63ff; }
-    .chord-name.nc { color: #444; font-weight: 400; font-style: italic; }
-    .chord-card.active .chord-name { color: #a89fff; }
+    .chord-name { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .chord-name.nc { color: var(--text-muted); font-weight: 400; font-style: italic; }
+    .chord-card.active .chord-name { color: #fff; }
+    [data-theme="dark"] .chord-card.active .chord-name { color: #a89fff; }
 
-    .chord-notes { font-size: 0.75rem; color: #888; letter-spacing: 0.03em; }
-    .chord-card.active .chord-notes { color: #a89fff; }
+    .chord-notes { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 0.03em; }
+    .chord-card.active .chord-notes { color: rgba(255,255,255,0.7); }
+    [data-theme="dark"] .chord-card.active .chord-notes { color: #a89fff; }
 
-    .chord-passing { font-size: 0.68rem; color: #e8a838; letter-spacing: 0.03em; }
-    .chord-card.active .chord-passing { color: #ffc96b; }
+    .chord-passing { font-size: 0.68rem; color: var(--passing); letter-spacing: 0.03em; }
+    .chord-card.active .chord-passing { color: var(--passing-active); }
 
-    .chord-time { font-size: 0.72rem; color: #555; white-space: nowrap; }
+    .chord-time { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+    .chord-card.active .chord-time { color: rgba(255,255,255,0.6); }
+    [data-theme="dark"] .chord-card.active .chord-time { color: #a89fff; }
 
-    .error { color: #e05c5c; }
+    label[for="resolution"] { color: var(--text-secondary); font-size: 0.9rem; }
 
-
+    .error { color: var(--error); }
   </style>
 </head>
 <body>
+  <!-- Theme toggle -->
+  <div class="theme-toggle" role="group" aria-label="Color theme">
+    <button data-theme-btn="light">Light</button>
+    <button data-theme-btn="dark">Dark</button>
+    <button data-theme-btn="system">System</button>
+  </div>
+
   <h1>Chord Identifier</h1>
   <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
   <p class="limitation-note" id="limitation-note">Bar mode: one chord per bar, with automatic splitting if a chord change is detected mid-bar.</p>
@@ -130,7 +236,7 @@
     </select>
     <button class="btn" id="analyze-btn" disabled>Analyze</button>
     <button class="btn" id="export-midi-btn" disabled>Export as MIDI</button>
-    <label style="display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 0.9rem;">
+    <label style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 0.9rem;">
       <input type="checkbox" id="include-tempo" style="cursor: pointer;" />
       Include tempo in MIDI
     </label>
@@ -146,6 +252,46 @@
   </div>
   <div id="player"><audio id="audio" controls></audio></div>
   <div id="results"></div>
+
+  <script>
+    // ── Theme logic (runs before module to avoid flash) ──
+    const THEME_KEY = 'chord-theme';
+    const htmlEl = document.documentElement;
+    const systemDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    function applyTheme(pref) {
+      if (pref === 'dark' || (pref === 'system' && systemDark())) {
+        htmlEl.setAttribute('data-theme', 'dark');
+      } else {
+        htmlEl.removeAttribute('data-theme');
+      }
+    }
+
+    function setThemePref(pref) {
+      localStorage.setItem(THEME_KEY, pref);
+      applyTheme(pref);
+      document.querySelectorAll('[data-theme-btn]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeBtn === pref);
+      });
+    }
+
+    // Apply saved pref immediately
+    const savedPref = localStorage.getItem(THEME_KEY) || 'system';
+    applyTheme(savedPref);
+
+    // Wire up buttons after DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-theme-btn]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeBtn === savedPref);
+        btn.addEventListener('click', () => setThemePref(btn.dataset.themeBtn));
+      });
+
+      // Re-apply when system preference changes (only matters in "system" mode)
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if ((localStorage.getItem(THEME_KEY) || 'system') === 'system') applyTheme('system');
+      });
+    });
+  </script>
 
   <script type="module" src="/src/main.js"></script>
 </body>

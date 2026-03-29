@@ -11,6 +11,7 @@ A fully client-side web app that analyzes an audio file and detects chords bar-b
 - Shows chord notes and passing tones for each detected chord
 - Audio player with real-time chord highlighting synced to playback
 - Click any chord card to jump to that point in the song
+- **Light / Dark / System theme** — toggle in the upper right corner; remembers your preference
 - **Export as MIDI** — Export detected chords as a MIDI file for use in Logic Pro or other DAWs. Notes are quantized to the beat grid for perfect alignment with your project tempo.
 
 ## MIDI Export
