@@ -32,7 +32,15 @@ export async function decodeAudio(file) {
   return offlineCtx.startRendering();
 }
 
-export async function runBasicPitch(audioBuffer, onProgress) {
+export async function runBasicPitch(audioBuffer, onProgress, options = {}) {
+  const {
+    onsetThresh  = 0.5,
+    frameThresh  = 0.3,
+    minNoteLen   = 5,
+    minPitchMidi = 0,
+    maxPitchMidi = 127,
+  } = options;
+
   const bp = await getModel();
 
   const frames = [], onsets = [], contours = [];
@@ -43,12 +51,18 @@ export async function runBasicPitch(audioBuffer, onProgress) {
     onProgress,
   );
 
-  return noteFramesToTime(
+  let notes = noteFramesToTime(
     addPitchBendsToNoteEvents(
       contours,
-      outputToNotesPoly(frames, onsets, 0.5, 0.3, 5),
+      outputToNotesPoly(frames, onsets, onsetThresh, frameThresh, minNoteLen),
     ),
   );
+
+  if (minPitchMidi > 0 || maxPitchMidi < 127) {
+    notes = notes.filter(n => n.pitchMidi >= minPitchMidi && n.pitchMidi <= maxPitchMidi);
+  }
+
+  return notes;
 }
 
 // Estimate BPM from note onset times using a Gaussian scoring grid

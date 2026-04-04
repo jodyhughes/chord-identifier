@@ -112,9 +112,17 @@ analyzeBtn.addEventListener('click', async () => {
     const audioBuffer = await decodeAudio(selectedFile);
     statusEl.textContent = 'Analyzing with Basic Pitch…';
 
+    const advancedOptions = {
+      onsetThresh:  parseFloat(document.getElementById('onset-thresh').value),
+      frameThresh:  parseFloat(document.getElementById('frame-thresh').value),
+      minNoteLen:   parseInt(document.getElementById('min-note-len').value),
+      minPitchMidi: parseInt(document.getElementById('min-pitch').value),
+      maxPitchMidi: parseInt(document.getElementById('max-pitch').value),
+    };
+
     const notes = await runBasicPitch(audioBuffer, progress => {
       progressBar.style.width = `${Math.round(progress * 100)}%`;
-    });
+    }, advancedOptions);
 
     statusEl.textContent = 'Detecting chords…';
     const beatsPerBar = parseInt(resolution.value);

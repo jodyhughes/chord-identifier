@@ -1,5 +1,7 @@
 # Chord Identifier
 
+**[chords.jodyhughes.com](https://chords.jodyhughes.com)**
+
 A fully client-side web app that analyzes an audio file and detects chords bar-by-bar, with real-time highlighting as the song plays. No server required — all processing runs in the browser.
 
 ## Features

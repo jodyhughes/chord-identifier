@@ -206,6 +206,65 @@
     label[for="resolution"] { color: var(--text-secondary); font-size: 0.9rem; }
 
     .error { color: var(--error); }
+
+    /* ── Advanced section ── */
+    .advanced-wrap { width: 100%; max-width: 1000px; margin-top: 20px; }
+
+    .advanced-toggle {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-secondary); font-family: inherit;
+      font-size: 0.85rem; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 0; transition: color 0.2s;
+    }
+    .advanced-toggle:hover { color: var(--accent); }
+    .advanced-toggle .chevron {
+      display: inline-block; transition: transform 0.2s;
+      font-style: normal; font-size: 0.7rem;
+    }
+    .advanced-toggle.open .chevron { transform: rotate(180deg); }
+
+    .advanced-body {
+      display: none; margin-top: 16px;
+      background: var(--bg-card); border-radius: 14px;
+      padding: 24px 28px; box-shadow: var(--card-shadow);
+      grid-template-columns: 1fr 1fr; gap: 28px 48px;
+    }
+    .advanced-body.open { display: grid; }
+
+    .slider-group { display: flex; flex-direction: column; gap: 8px; }
+
+    .slider-label {
+      font-size: 0.9rem; font-weight: 600; color: var(--text-primary);
+    }
+    .slider-desc { font-size: 0.75rem; color: var(--text-secondary); }
+
+    .slider-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .slider-edge { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+
+    input[type="range"] {
+      flex: 1; height: 4px; appearance: none;
+      background: var(--divider); border-radius: 2px; outline: none; cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .slider-value {
+      font-size: 0.82rem; font-weight: 600; color: var(--accent);
+      min-width: 48px; text-align: center;
+    }
+
+    .advanced-reset {
+      grid-column: 1 / -1; display: flex; justify-content: flex-end;
+      padding-top: 4px;
+    }
+    .btn-ghost {
+      background: none; border: 1px solid var(--border); color: var(--text-secondary);
+      border-radius: 980px; padding: 6px 16px; font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
@@ -240,6 +299,68 @@
       <input type="checkbox" id="include-tempo" style="cursor: pointer;" />
       Include tempo in MIDI
     </label>
+  </div>
+
+  <!-- Advanced model settings -->
+  <div class="advanced-wrap">
+    <button class="advanced-toggle" id="advanced-toggle" aria-expanded="false">
+      <span class="chevron">▼</span> Advanced
+    </button>
+    <div class="advanced-body" id="advanced-body" role="region">
+
+      <div class="slider-group">
+        <div class="slider-label">Model Confidence Threshold</div>
+        <div class="slider-desc">The model confidence required to create a note.</div>
+        <div class="slider-row">
+          <span class="slider-edge">More notes</span>
+          <input type="range" id="onset-thresh" min="0" max="1" step="0.01" value="0.5" />
+          <span class="slider-edge">Fewer notes</span>
+        </div>
+        <div class="slider-value" id="onset-thresh-val">0.50</div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">Note Segmentation</div>
+        <div class="slider-desc">How easily a note should be split into two.</div>
+        <div class="slider-row">
+          <span class="slider-edge">Split notes</span>
+          <input type="range" id="frame-thresh" min="0" max="1" step="0.01" value="0.3" />
+          <span class="slider-edge">Merge notes</span>
+        </div>
+        <div class="slider-value" id="frame-thresh-val">0.30</div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">Minimum Note Length</div>
+        <div class="slider-desc">The minimum duration required to emit a note (frames).</div>
+        <div class="slider-row">
+          <span class="slider-edge">Short</span>
+          <input type="range" id="min-note-len" min="1" max="50" step="1" value="5" />
+          <span class="slider-edge">Long</span>
+        </div>
+        <div class="slider-value" id="min-note-len-val">5</div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">Pitch Range</div>
+        <div class="slider-desc">Ignore notes outside this MIDI range.</div>
+        <div class="slider-row">
+          <span class="slider-edge">Min</span>
+          <input type="range" id="min-pitch" min="0" max="127" step="1" value="0" />
+          <span class="slider-edge">Max</span>
+          <input type="range" id="max-pitch" min="0" max="127" step="1" value="127" />
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <div class="slider-value" id="min-pitch-val">C-1</div>
+          <div class="slider-value" id="max-pitch-val">G9</div>
+        </div>
+      </div>
+
+      <div class="advanced-reset">
+        <button class="btn-ghost" id="advanced-reset">Reset to defaults</button>
+      </div>
+
+    </div>
   </div>
 
   <div id="method-label"></div>
@@ -289,6 +410,49 @@
       // Re-apply when system preference changes (only matters in "system" mode)
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
         if ((localStorage.getItem(THEME_KEY) || 'system') === 'system') applyTheme('system');
+      });
+    });
+  </script>
+
+  <script>
+    // ── Advanced sliders ──
+    const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    function midiToName(n) { return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1); }
+
+    const DEFAULTS = { 'onset-thresh': 0.5, 'frame-thresh': 0.3, 'min-note-len': 5, 'min-pitch': 0, 'max-pitch': 127 };
+
+    function formatVal(id, v) {
+      if (id === 'min-pitch' || id === 'max-pitch') return midiToName(parseInt(v));
+      return parseFloat(v).toFixed(id === 'min-note-len' ? 0 : 2);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Toggle open/close
+      const toggle = document.getElementById('advanced-toggle');
+      const body   = document.getElementById('advanced-body');
+      toggle.addEventListener('click', () => {
+        const open = body.classList.toggle('open');
+        toggle.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', open);
+      });
+
+      // Wire sliders to value displays
+      Object.keys(DEFAULTS).forEach(id => {
+        const slider = document.getElementById(id);
+        const valEl  = document.getElementById(id + '-val');
+        if (!slider || !valEl) return;
+        slider.addEventListener('input', () => { valEl.textContent = formatVal(id, slider.value); });
+      });
+
+      // Reset button
+      document.getElementById('advanced-reset').addEventListener('click', () => {
+        Object.entries(DEFAULTS).forEach(([id, def]) => {
+          const slider = document.getElementById(id);
+          const valEl  = document.getElementById(id + '-val');
+          if (!slider) return;
+          slider.value = def;
+          if (valEl) valEl.textContent = formatVal(id, def);
+        });
       });
     });
   </script>
