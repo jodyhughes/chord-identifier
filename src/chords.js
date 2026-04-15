@@ -64,6 +64,19 @@ export function chordNotes(chordName) {
   return intervals.map(i => NOTE_NAMES[(rootIdx + i) % 12]).join(' · ');
 }
 
+export function transposeNote(note, semitones) {
+  const idx = NOTE_NAMES.indexOf(note);
+  if (idx === -1) return note;
+  return NOTE_NAMES[((idx + semitones) % 12 + 12) % 12];
+}
+
+export function transposeChord(chord, semitones) {
+  if (chord === 'N.C.' || semitones === 0) return chord;
+  const match = chord.match(/^([A-G]#?)(.*)$/);
+  if (!match) return chord;
+  return transposeNote(match[1], semitones) + match[2];
+}
+
 export function shouldSplit(chromaA, chromaB, threshold = 0.25) {
   const na = vecNorm(chromaA);
   const nb = vecNorm(chromaB);

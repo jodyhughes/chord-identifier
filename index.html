@@ -214,10 +214,31 @@
     }
 
     #results { margin-top: 40px; width: 100%; max-width: 1000px; }
-    #results h2 {
-      font-size: 0.75rem; font-weight: 600; margin-bottom: 16px;
+
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .results-header h2 {
+      font-size: 0.75rem; font-weight: 600;
       color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
     }
+
+    .transpose-controls { display: flex; align-items: center; gap: 6px; }
+    .transpose-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-right: 2px; }
+
+    .transpose-btn {
+      background: none; border: 1px solid var(--border); color: var(--text-secondary);
+      border-radius: 50%; width: 26px; height: 26px; font-size: 1rem; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-family: inherit; transition: border-color 0.15s, color 0.15s;
+    }
+    .transpose-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .transpose-display {
+      font-size: 0.82rem; color: var(--text-muted); min-width: 28px; text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .transpose-display.active { color: var(--accent); font-weight: 600; }
 
     /* 1 grid unit = half-bar. Full bar = span 2, half-bar = span 1.
        Column count is always a multiple of 2 to preserve the 2:1 ratio. */

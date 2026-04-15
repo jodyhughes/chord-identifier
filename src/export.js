@@ -11,22 +11,22 @@ const INTERVALS = {
   sus4: [0, 5, 7],
 };
 
-function getChordNoteNumbers(chordName, baseOctave = 4) {
+function getChordNoteNumbers(chordName, baseOctave = 4, transposeAmount = 0) {
   if (chordName === 'N.C.') return [];
-  
+
   const match = chordName.match(/^([A-G]#?)(.*)$/);
   if (!match) return [];
-  
+
   const root = match[1];
   const quality = match[2] || 'maj';
   const rootIdx = NOTE_NAMES.indexOf(root);
-  
+
   if (rootIdx === -1) return [];
-  
+
   const intervals = INTERVALS[quality] ?? INTERVALS.maj;
   return intervals.map(interval => {
     const noteIdx = (rootIdx + interval) % 12;
-    return 12 + noteIdx + (baseOctave * 12); // MIDI note number (60 = middle C)
+    return Math.max(0, Math.min(127, 12 + noteIdx + (baseOctave * 12) + transposeAmount));
   });
 }
 
@@ -54,7 +54,7 @@ function concatUint8Arrays(...arrays) {
   return result;
 }
 
-function buildMidiFile(bars, bpm, includeTempoEvent = true) {
+function buildMidiFile(bars, bpm, includeTempoEvent = true, transposeAmount = 0) {
   const ticksPerBeat = 480;
   const trackEvents = [];
   
@@ -94,7 +94,7 @@ function buildMidiFile(bars, bpm, includeTempoEvent = true) {
       continue;
     }
     
-    const noteNumbers = getChordNoteNumbers(bar.chord);
+    const noteNumbers = getChordNoteNumbers(bar.chord, 4, transposeAmount);
     if (noteNumbers.length === 0) {
       // Unknown chord, just advance timeline
       lastAbsoluteTick = endTicks;
@@ -152,9 +152,9 @@ function buildMidiFile(bars, bpm, includeTempoEvent = true) {
   return concatUint8Arrays(headerChunk, trackChunk);
 }
 
-export function exportChordsToMidi(bars, bpm, filename = 'chords.mid', includeTempoEvent = true) {
+export function exportChordsToMidi(bars, bpm, filename = 'chords.mid', includeTempoEvent = true, transposeAmount = 0) {
   try {
-    const midiData = buildMidiFile(bars, bpm, includeTempoEvent);
+    const midiData = buildMidiFile(bars, bpm, includeTempoEvent, transposeAmount);
     const blob = new Blob([midiData], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

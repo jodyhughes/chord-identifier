@@ -1,5 +1,5 @@
 import { decodeAudio, runBasicPitch, notesFromOutput, buildBarsAndChords } from './analysis.js';
-import { chordNotes } from './chords.js';
+import { chordNotes, transposeChord, transposeNote } from './chords.js';
 import { exportChordsToMidi } from './export.js';
 
 const dropZone         = document.getElementById('drop-zone');
@@ -54,7 +54,7 @@ exportMidiBtn.addEventListener('click', () => {
   const filename = `chords-${new Date().toISOString().split('T')[0]}.mid`;
   const includeTempoEvent = includeTempoCheckbox.checked;
   
-  exportChordsToMidi(chordData, currentBpm, filename, includeTempoEvent);
+  exportChordsToMidi(chordData, currentBpm, filename, includeTempoEvent, transposeAmount);
   statusEl.textContent = 'MIDI file downloaded!';
   setTimeout(() => { statusEl.textContent = ''; }, 3000);
 });
@@ -76,6 +76,7 @@ bpmDoubleBtn.addEventListener('click', () => {
 let selectedFile = null;
 let chordData = [];
 let activeCard = null;
+let transposeAmount = 0;
 
 // --- File selection ---
 dropZone.addEventListener('click', () => fileInput.click());
@@ -147,6 +148,7 @@ function setFile(file) {
 
 function clearFile() {
   selectedFile = null;
+  transposeAmount = 0;
   analyzeBtn.disabled = true;
   reAnalyzeBtn.disabled = true;
   filePreview.style.display = 'none';
@@ -261,6 +263,41 @@ function formatTime(s) {
 }
 
 function renderChords(chords) {
+  resultsEl.innerHTML = '';
+
+  // Header row with transpose controls
+  const header = document.createElement('div');
+  header.className = 'results-header';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = 'Detected Chords';
+
+  const transposeWrap = document.createElement('div');
+  transposeWrap.className = 'transpose-controls';
+
+  const downBtn = document.createElement('button');
+  downBtn.className = 'transpose-btn';
+  downBtn.setAttribute('aria-label', 'Transpose down one semitone');
+  downBtn.textContent = '−';
+  downBtn.addEventListener('click', () => { transposeAmount--; renderChords(chordData); });
+
+  const transposeDisplay = document.createElement('span');
+  transposeDisplay.className = 'transpose-display' + (transposeAmount !== 0 ? ' active' : '');
+  transposeDisplay.textContent = transposeAmount > 0 ? `+${transposeAmount}` : `${transposeAmount}`;
+
+  const upBtn = document.createElement('button');
+  upBtn.className = 'transpose-btn';
+  upBtn.setAttribute('aria-label', 'Transpose up one semitone');
+  upBtn.textContent = '+';
+  upBtn.addEventListener('click', () => { transposeAmount++; renderChords(chordData); });
+
+  const transposeLabel = document.createElement('span');
+  transposeLabel.className = 'transpose-label';
+  transposeLabel.textContent = 'Transpose';
+  transposeWrap.append(transposeLabel, downBtn, transposeDisplay, upBtn);
+  header.append(h2, transposeWrap);
+  resultsEl.appendChild(header);
+
   const list = document.createElement('div');
   list.className = 'chord-list';
 
@@ -283,18 +320,21 @@ function renderChords(chords) {
     group.className = 'bar-group';
 
     items.forEach(({ chord, start, end, passingTones, index }) => {
-      const isNC = chord === 'N.C.';
-      const notes = chordNotes(chord);
-      const passing = passingTones?.length ? passingTones.join(' · ') : '';
+      const displayChord = transposeChord(chord, transposeAmount);
+      const isNC = displayChord === 'N.C.';
+      const notes = chordNotes(displayChord);
+      const passing = passingTones?.length
+        ? passingTones.map(n => transposeNote(n, transposeAmount)).join(' · ')
+        : '';
 
       const card = document.createElement('div');
       card.className = 'chord-card';
       card.dataset.index = index;
       card.role = 'button';
       card.tabIndex = 0;
-      card.setAttribute('aria-label', `${chord} chord, ${formatTime(start)} to ${formatTime(end)}`);
+      card.setAttribute('aria-label', `${displayChord} chord, ${formatTime(start)} to ${formatTime(end)}`);
       card.innerHTML = `
-        <div class="chord-name${isNC ? ' nc' : ''}">${chord}</div>
+        <div class="chord-name${isNC ? ' nc' : ''}">${displayChord}</div>
         ${notes  ? `<div class="chord-notes">${notes}</div>`   : ''}
         ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
         <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
@@ -314,7 +354,6 @@ function renderChords(chords) {
     list.appendChild(wrap);
   });
 
-  resultsEl.innerHTML = '<h2>Detected Chords</h2>';
   resultsEl.appendChild(list);
 }
 
