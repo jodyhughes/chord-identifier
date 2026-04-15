@@ -1,7 +1,0 @@
-flask
-flask-cors
-librosa
-numpy
-werkzeug
-basic-pitch
-openai-whisper

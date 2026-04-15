@@ -40,7 +40,7 @@
       --bg-input:     #1a1a1a;
       --text-primary: #e8e8e8;
       --text-secondary: #888;
-      --text-muted:   #555;
+      --text-muted:   #868686;
       --border:       #444;
       --border-drop:  #333;
       --divider:      #333;
@@ -67,13 +67,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 72px 20px;
+      padding: 19px 20px 72px;
       transition: background 0.25s, color 0.25s;
     }
 
     /* ── Theme toggle ── */
     .theme-toggle {
-      position: fixed; top: 20px; right: 24px;
+      position: absolute; top: 20px; right: 24px;
       display: flex; gap: 2px;
       background: var(--toggle-bg);
       border-radius: 980px;
@@ -103,11 +103,29 @@
     }
 
     /* ── Layout ── */
+    .site-header { width: 100%; max-width: 1000px; margin-bottom: 32px; text-align: left; }
+
     h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
 
-    .subtitle { color: var(--text-secondary); font-size: 1rem; margin-bottom: 10px; }
+    .subtitle { color: var(--text-secondary); font-size: 1rem; }
 
-    .limitation-note { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 40px; }
+    .info-tip {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-style: normal; line-height: 1;
+      color: var(--text-muted); cursor: pointer;
+      position: relative; vertical-align: middle; margin-left: 4px; z-index: 100;
+    }
+    .info-tip::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 7px); left: 0;
+      background: var(--text-primary); color: var(--bg);
+      font-size: 0.78rem; font-weight: 400; line-height: 1.45;
+      padding: 7px 11px; border-radius: 8px;
+      width: 260px; white-space: normal;
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.15s; z-index: 20;
+    }
+    .info-tip:hover::after, .info-tip:focus-visible::after { opacity: 1; }
 
     .drop-zone {
       width: 100%; max-width: 1000px;
@@ -128,14 +146,35 @@
     .formats { margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); }
     #file-input { display: none; }
 
-    .btn-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; justify-content: center; align-items: center; }
+    .controls-wrap { width: 100%; max-width: 1000px; margin-top: 24px; }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+    .controls-secondary {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap; justify-content: center;
+      margin-top: 10px;
+    }
+
+    .inline-check-label {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;
+    }
+    .inline-check-label input { cursor: pointer; }
+
+    .tempo-inline { display: flex; align-items: center; gap: 10px; }
 
     .resolution-select {
-      padding: 10px 14px; background: var(--bg-input); color: var(--text-primary);
+      padding: 10px 36px 10px 14px; background: var(--bg-input); color: var(--text-primary);
       border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; cursor: pointer;
       font-family: inherit; transition: background 0.25s, color 0.25s, border-color 0.25s;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236e6e73' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
     }
     .resolution-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    [data-theme="dark"] .resolution-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    }
 
     .btn {
       padding: 11px 28px; background: var(--accent); color: #fff;
@@ -148,8 +187,7 @@
 
     .btn-small { padding: 7px 16px; font-size: 0.85rem; }
 
-    #method-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
-    #status { margin-top: 20px; font-size: 0.9rem; color: var(--text-secondary); min-height: 22px; }
+#status { margin-top: 10px; font-size: 0.9rem; color: var(--text-secondary); min-height: 22px; }
 
     #progress-wrap {
       display: none; width: 100%; max-width: 1000px;
@@ -157,11 +195,23 @@
     }
     #progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.2s; border-radius: 2px; }
 
-    #tempo { font-size: 0.9rem; color: var(--text-secondary); margin-top: 12px; }
+    #tempo { font-size: 0.85rem; color: var(--text-secondary); }
     #tempo span { color: var(--text-primary); font-weight: 600; }
 
-    #player { display: none; width: 100%; max-width: 1000px; margin-top: 32px; }
-    #player audio { width: 100%; border-radius: 10px; accent-color: var(--accent); }
+    #player {
+      display: none; align-items: center; gap: 12px;
+      padding: 9px 14px; border-top: 1px solid var(--divider);
+    }
+    .play-pause-btn {
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: var(--text-primary); display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; flex-shrink: 0; transition: opacity 0.15s;
+    }
+    .play-pause-btn:hover { opacity: 0.6; }
+    .time-display {
+      font-size: 0.82rem; color: var(--text-secondary);
+      font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+    }
 
     #results { margin-top: 40px; width: 100%; max-width: 1000px; }
     #results h2 {
@@ -169,37 +219,39 @@
       color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
     }
 
-    .chord-list { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+    /* 1 grid unit = half-bar. Full bar = span 2, half-bar = span 1.
+       Column count is always a multiple of 2 to preserve the 2:1 ratio. */
+    .chord-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    @media (min-width: 480px) { .chord-list { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 768px) { .chord-list { grid-template-columns: repeat(8, 1fr); } }
 
-    .bar-wrap { flex: 1; display: flex; }
+    .bar-wrap { display: flex; /* grid-column: span N set inline */ }
 
-    .bar-group { display: flex; gap: 8px; align-items: stretch; width: 100%; }
-
-    .bar-divider { width: 1px; background: var(--divider); border-radius: 1px; flex-shrink: 0; }
+    .bar-group { display: flex; gap: 4px; align-items: stretch; width: 100%; }
 
     .chord-card {
-      background: var(--bg-card); border-radius: 12px; padding: 14px 8px;
+      background: var(--bg-card); border-radius: 14px; padding: 18px 10px;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 4px; flex: 1; min-width: 80px; cursor: pointer;
+      gap: 5px; flex: 1; cursor: pointer;
       transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
       box-shadow: var(--card-shadow);
     }
     .chord-card:hover { background: var(--bg-hover); box-shadow: var(--card-shadow-hover); }
     .chord-card.active { background: var(--accent-active-bg); transform: scale(1.06); box-shadow: var(--card-active-shadow); }
 
-    .chord-name { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .chord-name { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
     .chord-name.nc { color: var(--text-muted); font-weight: 400; font-style: italic; }
     .chord-card.active .chord-name { color: #fff; }
     [data-theme="dark"] .chord-card.active .chord-name { color: #a89fff; }
 
-    .chord-notes { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 0.03em; }
+    .chord-notes { font-size: 0.85rem; color: var(--text-muted); letter-spacing: 0.03em; }
     .chord-card.active .chord-notes { color: rgba(255,255,255,0.7); }
     [data-theme="dark"] .chord-card.active .chord-notes { color: #a89fff; }
 
-    .chord-passing { font-size: 0.68rem; color: var(--passing); letter-spacing: 0.03em; }
+    .chord-passing { font-size: 0.75rem; color: var(--passing); letter-spacing: 0.03em; }
     .chord-card.active .chord-passing { color: var(--passing-active); }
 
-    .chord-time { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+    .chord-time { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
     .chord-card.active .chord-time { color: rgba(255,255,255,0.6); }
     [data-theme="dark"] .chord-card.active .chord-time { color: #a89fff; }
 
@@ -207,30 +259,115 @@
 
     .error { color: var(--error); }
 
-    /* ── Advanced section ── */
-    .advanced-wrap { width: 100%; max-width: 1000px; margin-top: 20px; }
+    /* ── File preview ── */
+    .file-preview {
+      display: none; width: 100%; max-width: 1000px;
+      flex-direction: column;
+      border-radius: 14px; overflow: hidden;
+      background: var(--bg-card);
+      box-shadow: var(--card-shadow);
+      border: 1.5px solid var(--border);
+      transition: border-color 0.2s, background 0.25s;
+      position: sticky; top: 0; z-index: 50;
+    }
 
+    .waveform-wrap { position: relative; width: 100%; height: 80px; cursor: default; }
+    .waveform-wrap.seekable { cursor: pointer; }
+
+    #waveform-canvas { display: block; width: 100%; height: 100%; }
+
+    #waveform-progress {
+      position: absolute; top: 0; left: 0; height: 100%; width: 0%;
+      background: var(--accent); opacity: 0.2; pointer-events: none;
+    }
+
+    .file-preview-info {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px 10px;
+      border-top: 1px solid var(--divider);
+    }
+
+    .file-preview-name {
+      font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .file-preview-meta { font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; }
+
+    .file-preview-change {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.78rem; font-weight: 500; color: var(--accent);
+      padding: 0; flex-shrink: 0; transition: opacity 0.15s;
+    }
+    .file-preview-change:hover { opacity: 0.7; }
+
+    /* ── Advanced toggle ── */
     .advanced-toggle {
       background: none; border: none; cursor: pointer;
       color: var(--text-secondary); font-family: inherit;
       font-size: 0.85rem; font-weight: 500;
-      display: flex; align-items: center; gap: 6px;
       padding: 4px 0; transition: color 0.2s;
     }
     .advanced-toggle:hover { color: var(--accent); }
-    .advanced-toggle .chevron {
-      display: inline-block; transition: transform 0.2s;
-      font-style: normal; font-size: 0.7rem;
-    }
-    .advanced-toggle.open .chevron { transform: rotate(180deg); }
 
-    .advanced-body {
-      display: none; margin-top: 16px;
-      background: var(--bg-card); border-radius: 14px;
-      padding: 24px 28px; box-shadow: var(--card-shadow);
-      grid-template-columns: 1fr 1fr; gap: 28px 48px;
+    /* ── Advanced modal ── */
+    .advanced-modal {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.45);
+      align-items: center; justify-content: center; padding: 20px;
     }
-    .advanced-body.open { display: grid; }
+    .advanced-modal.open { display: flex; }
+
+    .advanced-modal-card {
+      background: var(--bg-card); border-radius: 20px;
+      width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto;
+      padding: 28px 32px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+      display: flex; flex-direction: column; gap: 24px;
+    }
+    [data-theme="dark"] .advanced-modal-card { box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
+
+    .advanced-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .advanced-modal-header span { font-size: 1.05rem; font-weight: 600; }
+
+    .advanced-close {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 1.5rem; line-height: 1; padding: 0;
+      color: var(--text-muted); transition: color 0.15s;
+    }
+    .advanced-close:hover { color: var(--text-primary); }
+
+    .advanced-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 28px 48px;
+    }
+
+    .piano-roll-wrap { position: relative; width: 100%; }
+    .piano-roll { display: block; width: 100%; height: 342px; border-radius: 10px; background: var(--bg); }
+    .piano-roll-spinner {
+      display: none; position: absolute;
+      top: calc(50% - 12px); left: calc(50% - 12px);
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2.5px solid rgba(255,149,0,0.25);
+      border-top-color: #ff9500;
+      animation: piano-roll-spin 0.7s linear infinite;
+    }
+    .piano-roll-spinner.visible { display: block; }
+    @keyframes piano-roll-spin { to { transform: rotate(360deg); } }
+
+    .btn-loading {
+      position: relative; color: transparent !important; pointer-events: none;
+    }
+    .btn-loading::after {
+      content: ''; position: absolute;
+      top: 50%; left: 50%;
+      width: 14px; height: 14px; margin: -7px 0 0 -7px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      animation: piano-roll-spin 0.7s linear infinite;
+    }
 
     .slider-group { display: flex; flex-direction: column; gap: 8px; }
 
@@ -257,7 +394,7 @@
 
     .advanced-reset {
       grid-column: 1 / -1; display: flex; justify-content: flex-end;
-      padding-top: 4px;
+      align-items: center; gap: 10px; padding-top: 4px;
     }
     .btn-ghost {
       background: none; border: 1px solid var(--border); color: var(--text-secondary);
@@ -275,9 +412,10 @@
     <button data-theme-btn="system">System</button>
   </div>
 
-  <h1>Chord Identifier</h1>
-  <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
-  <p class="limitation-note" id="limitation-note">Bar mode: one chord per bar, with automatic splitting if a chord change is detected mid-bar.</p>
+  <header class="site-header">
+    <h1>Chord Identifier</h1>
+    <p class="subtitle">Upload an audio file to detect chords and timestamps.</p>
+  </header>
 
   <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="Drag and drop audio file here or click to browse">
     <div class="icon">🎵</div>
@@ -286,92 +424,127 @@
     <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a" />
   </div>
 
-  <div class="btn-row">
-    <label for="resolution">Resolution:</label>
-    <select id="resolution" class="resolution-select">
-      <option value="4">Bar (4 beats)</option>
-      <option value="2">Half-bar (2 beats)</option>
-      <option value="1">Beat (1 beat)</option>
-    </select>
-    <button class="btn" id="analyze-btn" disabled>Analyze</button>
-    <button class="btn" id="export-midi-btn" disabled>Export as MIDI</button>
-    <label style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 0.9rem;">
-      <input type="checkbox" id="include-tempo" style="cursor: pointer;" />
-      Include tempo in MIDI
-    </label>
-  </div>
-
-  <!-- Advanced model settings -->
-  <div class="advanced-wrap">
-    <button class="advanced-toggle" id="advanced-toggle" aria-expanded="false">
-      <span class="chevron">▼</span> Advanced
-    </button>
-    <div class="advanced-body" id="advanced-body" role="region">
-
-      <div class="slider-group">
-        <div class="slider-label">Model Confidence Threshold</div>
-        <div class="slider-desc">The model confidence required to create a note.</div>
-        <div class="slider-row">
-          <span class="slider-edge">More notes</span>
-          <input type="range" id="onset-thresh" min="0" max="1" step="0.01" value="0.5" />
-          <span class="slider-edge">Fewer notes</span>
-        </div>
-        <div class="slider-value" id="onset-thresh-val">0.50</div>
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label">Note Segmentation</div>
-        <div class="slider-desc">How easily a note should be split into two.</div>
-        <div class="slider-row">
-          <span class="slider-edge">Split notes</span>
-          <input type="range" id="frame-thresh" min="0" max="1" step="0.01" value="0.3" />
-          <span class="slider-edge">Merge notes</span>
-        </div>
-        <div class="slider-value" id="frame-thresh-val">0.30</div>
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label">Minimum Note Length</div>
-        <div class="slider-desc">The minimum duration required to emit a note (frames).</div>
-        <div class="slider-row">
-          <span class="slider-edge">Short</span>
-          <input type="range" id="min-note-len" min="1" max="50" step="1" value="5" />
-          <span class="slider-edge">Long</span>
-        </div>
-        <div class="slider-value" id="min-note-len-val">5</div>
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label">Pitch Range</div>
-        <div class="slider-desc">Ignore notes outside this MIDI range.</div>
-        <div class="slider-row">
-          <span class="slider-edge">Min</span>
-          <input type="range" id="min-pitch" min="0" max="127" step="1" value="0" />
-          <span class="slider-edge">Max</span>
-          <input type="range" id="max-pitch" min="0" max="127" step="1" value="127" />
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <div class="slider-value" id="min-pitch-val">C-1</div>
-          <div class="slider-value" id="max-pitch-val">G9</div>
-        </div>
-      </div>
-
-      <div class="advanced-reset">
-        <button class="btn-ghost" id="advanced-reset">Reset to defaults</button>
-      </div>
-
+  <div id="file-preview" class="file-preview">
+    <div class="waveform-wrap" id="waveform-wrap">
+      <canvas id="waveform-canvas"></canvas>
+      <div id="waveform-progress"></div>
+    </div>
+    <div id="player">
+      <audio id="audio"></audio>
+      <button id="play-pause-btn" class="play-pause-btn" aria-label="Play">
+        <svg id="icon-play" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M4 3.5l13 6.5-13 6.5V3.5z"/>
+        </svg>
+        <svg id="icon-pause" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="display:none">
+          <path d="M4 3h4v14H4zM12 3h4v14h-4z"/>
+        </svg>
+      </button>
+      <span id="time-display" class="time-display">0:00 / 0:00</span>
+      <span class="player-divider" aria-hidden="true"></span>
+      <span id="file-preview-name" class="file-preview-name"></span>
+      <span id="file-preview-meta" class="file-preview-meta"></span>
+      <button id="file-preview-change" class="file-preview-change" aria-label="Upload a different file">Change file</button>
     </div>
   </div>
 
-  <div id="method-label"></div>
-  <div id="status"></div>
-  <div id="progress-wrap"><div id="progress-bar"></div></div>
-  <div id="tempo-controls" style="display: none; align-items: center; gap: 12px;">
-    <div id="tempo"></div>
-    <button class="btn btn-small" id="bpm-halve">÷2</button>
-    <button class="btn btn-small" id="bpm-double">×2</button>
+  <div class="controls-wrap">
+    <div class="btn-row">
+      <label for="resolution">Resolution <span class="info-tip" id="resolution-tip" data-tooltip="Bar mode: one chord per bar, with automatic splitting if a chord change is detected mid-bar." tabindex="0" aria-label="Resolution info" role="tooltip">ⓘ</span></label>
+      <select id="resolution" class="resolution-select">
+        <option value="4">Bar (4 beats)</option>
+        <option value="2">Half-bar (2 beats)</option>
+        <option value="1">Beat (1 beat)</option>
+      </select>
+      <button class="btn" id="analyze-btn" disabled>Analyze</button>
+      <button class="advanced-toggle" id="advanced-toggle" aria-haspopup="dialog" aria-expanded="false" style="display:none">Advanced</button>
+    </div>
+    <div id="controls-secondary" class="controls-secondary" style="display:none">
+      <button class="btn btn-small" id="export-midi-btn" disabled>Export as MIDI</button>
+      <label id="include-tempo-label" class="inline-check-label">
+        <input type="checkbox" id="include-tempo" />
+        Include tempo in MIDI
+      </label>
+      <div id="tempo-controls" class="tempo-inline">
+        <div id="tempo"></div>
+        <button class="btn btn-small" id="bpm-halve">÷2</button>
+        <button class="btn btn-small" id="bpm-double">×2</button>
+      </div>
+    </div>
+
+    <div id="status"></div>
+    <div id="progress-wrap"><div id="progress-bar"></div></div>
   </div>
-  <div id="player"><audio id="audio" controls></audio></div>
+
+  <!-- Advanced modal -->
+  <div id="advanced-modal" class="advanced-modal" role="dialog" aria-modal="true" aria-labelledby="advanced-modal-title">
+    <div class="advanced-modal-card">
+      <div class="advanced-modal-header">
+        <span id="advanced-modal-title">Advanced Model Settings</span>
+        <button id="advanced-close" class="advanced-close" aria-label="Close">×</button>
+      </div>
+
+      <div class="piano-roll-wrap">
+        <canvas id="piano-roll" class="piano-roll"></canvas>
+        <div id="piano-roll-spinner" class="piano-roll-spinner"></div>
+      </div>
+
+      <div class="advanced-grid">
+        <div class="slider-group">
+          <div class="slider-label">Model Confidence Threshold</div>
+          <div class="slider-desc">The model confidence required to create a note.</div>
+          <div class="slider-row">
+            <span class="slider-edge">More notes</span>
+            <input type="range" id="onset-thresh" min="0" max="1" step="0.01" value="0.5" />
+            <span class="slider-edge">Fewer notes</span>
+          </div>
+          <div class="slider-value" id="onset-thresh-val">0.50</div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">Note Segmentation</div>
+          <div class="slider-desc">How easily a note should be split into two.</div>
+          <div class="slider-row">
+            <span class="slider-edge">Split notes</span>
+            <input type="range" id="frame-thresh" min="0" max="1" step="0.01" value="0.3" />
+            <span class="slider-edge">Merge notes</span>
+          </div>
+          <div class="slider-value" id="frame-thresh-val">0.30</div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">Minimum Note Length</div>
+          <div class="slider-desc">The minimum duration required to emit a note (frames).</div>
+          <div class="slider-row">
+            <span class="slider-edge">Short</span>
+            <input type="range" id="min-note-len" min="1" max="50" step="1" value="5" />
+            <span class="slider-edge">Long</span>
+          </div>
+          <div class="slider-value" id="min-note-len-val">5</div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">Pitch Range</div>
+          <div class="slider-desc">Ignore notes outside this MIDI range.</div>
+          <div class="slider-row">
+            <span class="slider-edge">Min</span>
+            <input type="range" id="min-pitch" min="0" max="127" step="1" value="0" />
+            <span class="slider-edge">Max</span>
+            <input type="range" id="max-pitch" min="0" max="127" step="1" value="127" />
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <div class="slider-value" id="min-pitch-val">C-1</div>
+            <div class="slider-value" id="max-pitch-val">G9</div>
+          </div>
+        </div>
+
+        <div class="advanced-reset">
+          <button class="btn-ghost" id="advanced-reset">Reset to defaults</button>
+          <button class="btn btn-small" id="re-analyze-btn" disabled>Reanalyze</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="results"></div>
 
   <script>
@@ -427,14 +600,25 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Toggle open/close
+      // Modal open/close
+      const modal  = document.getElementById('advanced-modal');
       const toggle = document.getElementById('advanced-toggle');
-      const body   = document.getElementById('advanced-body');
-      toggle.addEventListener('click', () => {
-        const open = body.classList.toggle('open');
-        toggle.classList.toggle('open', open);
-        toggle.setAttribute('aria-expanded', open);
-      });
+      const close  = document.getElementById('advanced-close');
+
+      function openModal()  {
+        modal.classList.add('open');
+        toggle.setAttribute('aria-expanded', 'true');
+        close.focus();
+      }
+      function closeModal() {
+        modal.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+
+      toggle.addEventListener('click', openModal);
+      close.addEventListener('click', closeModal);
+      modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
       // Wire sliders to value displays
       Object.keys(DEFAULTS).forEach(id => {

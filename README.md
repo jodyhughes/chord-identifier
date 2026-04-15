@@ -10,22 +10,23 @@ A fully client-side web app that analyzes an audio file and detects chords bar-b
 - Detects tempo (BPM) and chord changes per bar
 - Three resolution modes: bar, half-bar, or beat
 - Adaptive bar splitting — if a chord change is detected mid-bar, it splits automatically
+- Chord cards sized proportionally to beat duration — full bars are twice as wide as half-bars
 - Shows chord notes and passing tones for each detected chord
-- Audio player with real-time chord highlighting synced to playback
+- Custom audio player with play/pause and time display synced to playback
 - Click any chord card to jump to that point in the song
 - **Light / Dark / System theme** — toggle in the upper right corner; remembers your preference
-- **Export as MIDI** — Export detected chords as a MIDI file for use in Logic Pro or other DAWs. Notes are quantized to the beat grid for perfect alignment with your project tempo.
+- **Export as MIDI** — export detected chords as a MIDI file for use in Logic Pro or other DAWs
 
 ## MIDI Export
 
 After analyzing a song, you can export the detected chords as a MIDI file:
 
-- **Export button** appears after analysis
+- **Export button** appears after analysis in the controls bar
 - **Include tempo in MIDI** checkbox — uncheck to export without tempo data (recommended for use with your project's locked tempo)
 - **÷2 / ×2 buttons** — adjust the detected BPM by a factor of 2 if the analyzer finds double-beat or half-beat
 - **Beat quantization** — all notes snap to exact beat boundaries, so they align perfectly with your DAW's grid regardless of slight timing variations in the original audio
 
-**Workflow:** Analyze → Adjust BPM if needed → Export → Import into Logic/Ableton/etc. → All three chord notes will sustain for the detected chord duration, locked to your project's beat grid.
+**Workflow:** Analyze → Adjust BPM if needed → Export → Import into Logic/Ableton/etc.
 
 ## How it works
 
@@ -35,6 +36,16 @@ After analyzing a song, you can export the detected chords as a MIDI file:
 4. Notes are grouped into bars, and chroma vectors (12-dimensional pitch class energy) are built for each bar
 5. Chroma vectors are matched against chord templates using cosine similarity
 6. Passing tones — non-chord pitch classes with significant energy — are identified and displayed
+
+## Advanced settings
+
+Click **Advanced** (appears after analysis) to open a modal with model parameters and a live piano roll preview:
+
+- **Model Confidence Threshold** — controls how confident the model must be to emit a note
+- **Note Segmentation** — controls how easily adjacent notes are split vs. merged
+- **Minimum Note Length** — filters out very short notes
+- **Pitch Range** — ignores notes outside a MIDI range
+- Changes preview instantly on the piano roll; click **Reanalyze** to apply them to chord detection
 
 ## Chord types detected
 

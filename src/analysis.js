@@ -4,7 +4,12 @@ import {
   addPitchBendsToNoteEvents,
   outputToNotesPoly,
 } from '@spotify/basic-pitch';
+import * as tf from '@tensorflow/tfjs';
 import { chromaToChord, getPassingTones, shouldSplit } from './chords.js';
+
+// Packed WebGL ops produce shader-compilation errors on some GPU/driver combos.
+// Disabling WEBGL_PACK keeps GPU acceleration while avoiding the broken shader paths.
+tf.env().set('WEBGL_PACK', false);
 
 const MODEL_URL = 'https://unpkg.com/@spotify/basic-pitch@1.0.1/model/model.json';
 let model = null;
@@ -32,7 +37,8 @@ export async function decodeAudio(file) {
   return offlineCtx.startRendering();
 }
 
-export async function runBasicPitch(audioBuffer, onProgress, options = {}) {
+// Fast post-processing only — no model inference. Call this when slider values change.
+export function notesFromOutput({ frames, onsets, contours }, options = {}) {
   const {
     onsetThresh  = 0.5,
     frameThresh  = 0.3,
@@ -40,16 +46,6 @@ export async function runBasicPitch(audioBuffer, onProgress, options = {}) {
     minPitchMidi = 0,
     maxPitchMidi = 127,
   } = options;
-
-  const bp = await getModel();
-
-  const frames = [], onsets = [], contours = [];
-
-  await bp.evaluateModel(
-    audioBuffer,
-    (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
-    onProgress,
-  );
 
   let notes = noteFramesToTime(
     addPitchBendsToNoteEvents(
@@ -63,6 +59,21 @@ export async function runBasicPitch(audioBuffer, onProgress, options = {}) {
   }
 
   return notes;
+}
+
+// Full pipeline: runs ML inference then post-processes. Returns notes + raw model output.
+export async function runBasicPitch(audioBuffer, onProgress, options = {}) {
+  const bp = await getModel();
+  const frames = [], onsets = [], contours = [];
+
+  await bp.evaluateModel(
+    audioBuffer,
+    (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
+    onProgress,
+  );
+
+  const modelOutput = { frames, onsets, contours };
+  return { notes: notesFromOutput(modelOutput, options), modelOutput };
 }
 
 // Estimate BPM from note onset times using a Gaussian scoring grid
@@ -166,13 +177,14 @@ function notesToChroma(noteEvents, start, end) {
   return chroma;
 }
 
-function makeBar(chord, passingTones, start, end, barNum) {
+function makeBar(chord, passingTones, start, end, barNum, beats) {
   return {
     chord,
     passingTones,
     start: parseFloat(start.toFixed(2)),
     end: parseFloat(end.toFixed(2)),
     bar: barNum,
+    beats,
   };
 }
 
@@ -206,8 +218,8 @@ export function buildBarsAndChords(notes, duration, beatsPerBar) {
         const chordA = chromaToChord(chromaA);
         const chordB = chromaToChord(chromaB);
         if (chordA !== chordB) {
-          bars.push(makeBar(chordA, getPassingTones(chordA, chromaA), barStart, barMid, barNum));
-          bars.push(makeBar(chordB, getPassingTones(chordB, chromaB), barMid, barEnd, barNum));
+          bars.push(makeBar(chordA, getPassingTones(chordA, chromaA), barStart, barMid, barNum, beatsPerBar / 2));
+          bars.push(makeBar(chordB, getPassingTones(chordB, chromaB), barMid, barEnd, barNum, beatsPerBar / 2));
           continue;
         }
       }
@@ -215,7 +227,7 @@ export function buildBarsAndChords(notes, duration, beatsPerBar) {
 
     const chroma = notesToChroma(noteEvents, barStart, barEnd);
     const chord = chromaToChord(chroma);
-    bars.push(makeBar(chord, getPassingTones(chord, chroma), barStart, barEnd, barNum));
+    bars.push(makeBar(chord, getPassingTones(chord, chroma), barStart, barEnd, barNum, beatsPerBar));
   }
 
   return { bars, bpm };
