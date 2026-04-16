@@ -24,7 +24,7 @@ const statusEl    = document.getElementById('status');
 const progressWrap = document.getElementById('progress-wrap');
 const progressBar = document.getElementById('progress-bar');
 const tempoEl     = document.getElementById('tempo');
-const bpmHalveBtn = document.getElementById('bpm-halve');
+const bpmHalveBtn  = document.getElementById('bpm-halve');
 const bpmDoubleBtn = document.getElementById('bpm-double');
 const playerEl      = document.getElementById('player');
 const audio         = document.getElementById('audio');
@@ -38,6 +38,8 @@ const resolutionTip  = document.getElementById('resolution-tip');
 let currentBpm          = 120;
 let cachedModelOutput   = null;
 let cachedAudioDuration = 0;
+let barShift            = null;  // null = auto-detect; number = manual override
+let detectedBarOffset   = 0;
 
 const LIMITATION_NOTES = {
   '4': 'Bar mode: one chord per bar, with automatic splitting if a chord change is detected mid-bar.',
@@ -72,6 +74,20 @@ bpmDoubleBtn.addEventListener('click', () => {
   currentBpm = parseFloat((currentBpm * 2).toFixed(1));
   updateTempoDisplay();
 });
+
+// Fast chord rebuild from cached notes — no ML re-inference needed.
+function rebuildChords() {
+  if (!cachedModelOutput) return;
+  const notes = notesFromOutput(cachedModelOutput, getAdvancedOptions());
+  const beatsPerBar = parseInt(resolution.value);
+  const { bars, bpm, barOffset } = buildBarsAndChords(notes, cachedAudioDuration, beatsPerBar, barShift);
+  detectedBarOffset = barOffset;
+  currentBpm = bpm;
+  updateTempoDisplay();
+  chordData = bars;
+  renderChords(bars);
+}
+
 
 let selectedFile = null;
 let chordData = [];
@@ -149,6 +165,8 @@ function setFile(file) {
 function clearFile() {
   selectedFile = null;
   transposeAmount = 0;
+  barShift = null;
+  detectedBarOffset = 0;
   analyzeBtn.disabled = true;
   reAnalyzeBtn.disabled = true;
   filePreview.style.display = 'none';
@@ -200,6 +218,7 @@ function getAdvancedOptions() {
 
 // --- Analysis ---
 async function runAnalysis() {
+  barShift = null; // reset to auto-detect on every fresh analysis
   const savedOutput   = cachedModelOutput;
   const savedDuration = cachedAudioDuration;
   reset();
@@ -229,7 +248,8 @@ async function runAnalysis() {
 
   statusEl.textContent = 'Detecting chords…';
   const beatsPerBar = parseInt(resolution.value);
-  const { bars, bpm } = buildBarsAndChords(notes, cachedAudioDuration, beatsPerBar);
+  const { bars, bpm, barOffset } = buildBarsAndChords(notes, cachedAudioDuration, beatsPerBar, null);
+  detectedBarOffset = barOffset;
   currentBpm = bpm;
   exportMidiBtn.disabled = false;
   chordData = bars;
@@ -272,6 +292,46 @@ function renderChords(chords) {
   const h2 = document.createElement('h2');
   h2.textContent = 'Detected Chords';
 
+  // Bar shift controls
+  const barShiftWrap = document.createElement('div');
+  barShiftWrap.className = 'transpose-controls';
+
+  const barLabel = document.createElement('span');
+  barLabel.className = 'transpose-label';
+  barLabel.textContent = 'Bar';
+
+  const barTip = document.createElement('span');
+  barTip.className = 'info-tip';
+  barTip.dataset.tooltip = 'Try adjusting this if the timing is off';
+  barTip.setAttribute('tabindex', '0');
+  barTip.setAttribute('aria-label', 'Bar shift info');
+  barTip.textContent = 'ⓘ';
+
+  const barLeftBtn = document.createElement('button');
+  barLeftBtn.className = 'transpose-btn';
+  barLeftBtn.setAttribute('aria-label', 'Shift bar start left one beat');
+  barLeftBtn.textContent = '←';
+  barLeftBtn.addEventListener('click', () => {
+    const bpb = parseInt(resolution.value);
+    const cur = barShift !== null ? barShift : detectedBarOffset;
+    barShift = ((cur - 1) % bpb + bpb) % bpb;
+    rebuildChords();
+  });
+
+  const barRightBtn = document.createElement('button');
+  barRightBtn.className = 'transpose-btn';
+  barRightBtn.setAttribute('aria-label', 'Shift bar start right one beat');
+  barRightBtn.textContent = '→';
+  barRightBtn.addEventListener('click', () => {
+    const bpb = parseInt(resolution.value);
+    const cur = barShift !== null ? barShift : detectedBarOffset;
+    barShift = (cur + 1) % bpb;
+    rebuildChords();
+  });
+
+  barShiftWrap.append(barLabel, barTip, barLeftBtn, barRightBtn);
+
+  // Transpose controls
   const transposeWrap = document.createElement('div');
   transposeWrap.className = 'transpose-controls';
 
@@ -295,7 +355,11 @@ function renderChords(chords) {
   transposeLabel.className = 'transpose-label';
   transposeLabel.textContent = 'Transpose';
   transposeWrap.append(transposeLabel, downBtn, transposeDisplay, upBtn);
-  header.append(h2, transposeWrap);
+
+  const headerRight = document.createElement('div');
+  headerRight.style.cssText = 'display:flex; align-items:center; gap:16px;';
+  headerRight.append(barShiftWrap, transposeWrap);
+  header.append(h2, headerRight);
   resultsEl.appendChild(header);
 
   const list = document.createElement('div');
@@ -339,7 +403,7 @@ function renderChords(chords) {
         ${passing ? `<div class="chord-passing">${passing}</div>` : ''}
         <div class="chord-time">${formatTime(start)} – ${formatTime(end)}</div>
       `;
-      const playChord = () => { audio.currentTime = start; audio.play(); };
+      const playChord = () => { audio.currentTime = start; audio.play().catch(() => {}); };
       card.addEventListener('click', playChord);
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -534,7 +598,7 @@ function setPlaying(playing) {
 }
 
 playPauseBtn.addEventListener('click', () => {
-  audio.paused ? audio.play() : audio.pause();
+  audio.paused ? audio.play().catch(() => {}) : audio.pause();
 });
 
 audio.addEventListener('play',  () => setPlaying(true));
@@ -577,3 +641,23 @@ function syncChords() {
   requestAnimationFrame(syncChords);
 }
 requestAnimationFrame(syncChords);
+
+document.addEventListener('keydown', (e) => {
+  if (!audio.src) return;
+  if (['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+  if (e.key === ' ') {
+    e.preventDefault();
+    audio.paused ? audio.play().catch(() => {}) : audio.pause();
+  } else if (e.key === 'ArrowLeft' && chordData.length) {
+    e.preventDefault();
+    const t = audio.currentTime;
+    const prev = [...chordData].reverse().find(c => c.start < t - 0.1);
+    audio.currentTime = prev ? prev.start : chordData[0].start;
+  } else if (e.key === 'ArrowRight' && chordData.length) {
+    e.preventDefault();
+    const t = audio.currentTime;
+    const next = chordData.find(c => c.start > t + 0.1);
+    if (next) audio.currentTime = next.start;
+  }
+});

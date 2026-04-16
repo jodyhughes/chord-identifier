@@ -14,6 +14,9 @@ A fully client-side web app that analyzes an audio file and detects chords bar-b
 - Shows chord notes and passing tones for each detected chord
 - Custom audio player with play/pause and time display synced to playback
 - Click any chord card to jump to that point in the song
+- **Keyboard shortcuts** — Space to play/pause, ← / → to step between chords
+- **Transpose** — shift all displayed chords up or down in semitones in real time; applied to MIDI export
+- **Bar shift** — nudge the bar grid left or right by one beat if the timing is off
 - **Light / Dark / System theme** — toggle in the upper right corner; remembers your preference
 - **Export as MIDI** — export detected chords as a MIDI file for use in Logic Pro or other DAWs
 
@@ -26,7 +29,7 @@ After analyzing a song, you can export the detected chords as a MIDI file:
 - **÷2 / ×2 buttons** — adjust the detected BPM by a factor of 2 if the analyzer finds double-beat or half-beat
 - **Beat quantization** — all notes snap to exact beat boundaries, so they align perfectly with your DAW's grid regardless of slight timing variations in the original audio
 
-**Workflow:** Analyze → Adjust BPM if needed → Export → Import into Logic/Ableton/etc.
+**Workflow:** Analyze → Adjust BPM / transpose / bar shift if needed → Export → Import into Logic/Ableton/etc.
 
 ## How it works
 

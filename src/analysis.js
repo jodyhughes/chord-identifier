@@ -169,6 +169,28 @@ function generateBeatTimes(notes, duration, beatPeriod) {
   return beats;
 }
 
+// Try every possible bar-start offset and return the one with the most onset
+// energy at bar boundaries. Downbeats (the 1) typically have the highest activity.
+function bestBarOffset(beatTimes, beatsPerBar, noteEvents) {
+  if (beatsPerBar < 2) return 0;
+  const sigma = 0.05;
+  let bestOffset = 0, bestScore = -1;
+
+  for (let offset = 0; offset < beatsPerBar; offset++) {
+    let score = 0;
+    for (let i = offset; i < beatTimes.length; i += beatsPerBar) {
+      const t = beatTimes[i];
+      for (const { startTime } of noteEvents) {
+        const dist = Math.abs(startTime - t);
+        if (dist < sigma * 5) score += Math.exp(-(dist * dist) / (2 * sigma * sigma));
+      }
+    }
+    if (score > bestScore) { bestScore = score; bestOffset = offset; }
+  }
+
+  return bestOffset;
+}
+
 function notesToChroma(noteEvents, start, end) {
   const chroma = new Float32Array(12);
   for (const { startTime, endTime, pitchClass } of noteEvents) {
@@ -188,7 +210,7 @@ function makeBar(chord, passingTones, start, end, barNum, beats) {
   };
 }
 
-export function buildBarsAndChords(notes, duration, beatsPerBar) {
+export function buildBarsAndChords(notes, duration, beatsPerBar, barShift = null) {
   const { bpm, beatPeriod } = estimateBPM(notes);
   const beatTimes = generateBeatTimes(notes, duration, beatPeriod);
 
@@ -198,11 +220,16 @@ export function buildBarsAndChords(notes, duration, beatsPerBar) {
     pitchClass: n.pitchMidi % 12,
   }));
 
+  // Auto-detect the best bar start offset, or use the caller's manual override.
+  const startOffset = barShift !== null
+    ? (((barShift % beatsPerBar) + beatsPerBar) % beatsPerBar)
+    : bestBarOffset(beatTimes, beatsPerBar, noteEvents);
+
   const bars = [];
   const doAdaptive = beatsPerBar >= 4;
 
-  for (let i = 0; i <= beatTimes.length - beatsPerBar; i += beatsPerBar) {
-    const barNum = Math.floor(i / 4);
+  for (let i = startOffset; i <= beatTimes.length - beatsPerBar; i += beatsPerBar) {
+    const barNum = Math.floor((i - startOffset) / 4);
     const barStart = beatTimes[i];
     const barEnd = (i + beatsPerBar) < beatTimes.length
       ? beatTimes[i + beatsPerBar]
@@ -230,5 +257,5 @@ export function buildBarsAndChords(notes, duration, beatsPerBar) {
     bars.push(makeBar(chord, getPassingTones(chord, chroma), barStart, barEnd, barNum, beatsPerBar));
   }
 
-  return { bars, bpm };
+  return { bars, bpm, barOffset: startOffset };
 }
