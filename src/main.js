@@ -312,10 +312,11 @@ function renderChords(chords) {
   barLeftBtn.setAttribute('aria-label', 'Shift bar start left one beat');
   barLeftBtn.textContent = '←';
   barLeftBtn.addEventListener('click', () => {
+    barLeftBtn.classList.add('btn-loading');
     const bpb = parseInt(resolution.value);
     const cur = barShift !== null ? barShift : detectedBarOffset;
     barShift = ((cur - 1) % bpb + bpb) % bpb;
-    rebuildChords();
+    setTimeout(() => rebuildChords(), 0);
   });
 
   const barRightBtn = document.createElement('button');
@@ -323,10 +324,11 @@ function renderChords(chords) {
   barRightBtn.setAttribute('aria-label', 'Shift bar start right one beat');
   barRightBtn.textContent = '→';
   barRightBtn.addEventListener('click', () => {
+    barRightBtn.classList.add('btn-loading');
     const bpb = parseInt(resolution.value);
     const cur = barShift !== null ? barShift : detectedBarOffset;
     barShift = (cur + 1) % bpb;
-    rebuildChords();
+    setTimeout(() => rebuildChords(), 0);
   });
 
   barShiftWrap.append(barLabel, barTip, barLeftBtn, barRightBtn);
