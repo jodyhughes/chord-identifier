@@ -307,6 +307,17 @@ function renderChords(chords) {
   barTip.setAttribute('aria-label', 'Bar shift info');
   barTip.textContent = 'ⓘ';
 
+  const barDisplay = document.createElement('span');
+
+  const updateBarDisplay = () => {
+    const val = barShift !== null ? barShift : 0;
+    const bpb = parseInt(resolution.value);
+    const signed = val > bpb / 2 ? val - bpb : val;
+    barDisplay.textContent = signed > 0 ? `+${signed}` : `${signed}`;
+    barDisplay.className = 'transpose-display' + (val !== 0 ? ' active' : '');
+  };
+  updateBarDisplay();
+
   const barLeftBtn = document.createElement('button');
   barLeftBtn.className = 'transpose-btn';
   barLeftBtn.setAttribute('aria-label', 'Shift bar start left one beat');
@@ -316,6 +327,7 @@ function renderChords(chords) {
     const bpb = parseInt(resolution.value);
     const cur = barShift !== null ? barShift : detectedBarOffset;
     barShift = ((cur - 1) % bpb + bpb) % bpb;
+    updateBarDisplay();
     setTimeout(() => rebuildChords(), 0);
   });
 
@@ -328,10 +340,13 @@ function renderChords(chords) {
     const bpb = parseInt(resolution.value);
     const cur = barShift !== null ? barShift : detectedBarOffset;
     barShift = (cur + 1) % bpb;
+    updateBarDisplay();
     setTimeout(() => rebuildChords(), 0);
   });
 
-  barShiftWrap.append(barLabel, barTip, barLeftBtn, barRightBtn);
+  const barLabelGroup = document.createElement('span');
+  barLabelGroup.append(barLabel, barTip);
+  barShiftWrap.append(barLabelGroup, barLeftBtn, barDisplay, barRightBtn);
 
   // Transpose controls
   const transposeWrap = document.createElement('div');

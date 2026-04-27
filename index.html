@@ -13,55 +13,63 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:           #f5f5f7;
+      --bg:           #f7f4ef;
       --bg-card:      #ffffff;
-      --bg-hover:     #f0f6ff;
+      --bg-hover:     #eef4f4;
       --bg-input:     #ffffff;
-      --text-primary: #1d1d1f;
-      --text-secondary: #6e6e73;
-      --text-muted:   #aeaeb2;
-      --border:       #d2d2d7;
-      --border-drop:  #c7c7cc;
-      --divider:      #e5e5ea;
-      --accent:       #0071e3;
-      --accent-hover: #0077ed;
-      --accent-active-bg: #0071e3;
-      --accent-glow:  rgba(0,113,227,0.2);
-      --progress-bg:  #e5e5ea;
-      --card-shadow:  0 1px 3px rgba(0,0,0,0.07);
-      --card-shadow-hover: 0 2px 10px rgba(0,0,0,0.1);
-      --card-active-shadow: 0 4px 16px rgba(0,113,227,0.3);
-      --passing:      #ff9500;
-      --passing-active: #ffe599;
-      --error:        #ff3b30;
-      --toggle-bg:    #e5e5ea;
-      --toggle-active: #0071e3;
+      --text-primary: #1e1614;
+      --text-secondary: #6e5a52;
+      --text-muted:   #a89088;
+      --border:       #ddd4c8;
+      --border-drop:  #cec4b8;
+      --divider:      #e8e0d8;
+      --accent:       #c8604a;
+      --accent-hover: #a84c38;
+      --accent-active-bg: #1b5e62;
+      --accent-glow:  rgba(200,96,74,0.2);
+      --btn-bg:       #1b5e62;
+      --btn-bg-hover: #134a4e;
+      --chord-name:   #5c7818;
+      --chord-name-active: #ffffff;
+      --progress-bg:  #e8e0d8;
+      --card-shadow:  0 1px 3px rgba(30,22,20,0.07);
+      --card-shadow-hover: 0 2px 10px rgba(30,22,20,0.12);
+      --card-active-shadow: 0 4px 16px rgba(27,94,98,0.35);
+      --passing:      #9e8a1a;
+      --passing-active: #f0e080;
+      --error:        #b83228;
+      --toggle-bg:    #ddd4c8;
+      --toggle-active: #1b5e62;
     }
 
     [data-theme="dark"] {
-      --bg:           #0f0f0f;
-      --bg-card:      #1a1a1a;
-      --bg-hover:     #16141f;
-      --bg-input:     #1a1a1a;
-      --text-primary: #e8e8e8;
-      --text-secondary: #888;
-      --text-muted:   #868686;
-      --border:       #444;
-      --border-drop:  #333;
-      --divider:      #333;
-      --accent:       #6c63ff;
-      --accent-hover: #7a72ff;
-      --accent-active-bg: #2a2560;
-      --accent-glow:  rgba(108,99,255,0.2);
-      --progress-bg:  #222;
-      --card-shadow:  0 1px 3px rgba(0,0,0,0.3);
-      --card-shadow-hover: 0 2px 10px rgba(0,0,0,0.4);
-      --card-active-shadow: 0 4px 16px rgba(108,99,255,0.3);
-      --passing:      #e8a838;
-      --passing-active: #ffc96b;
-      --error:        #e05c5c;
-      --toggle-bg:    #2a2a2a;
-      --toggle-active: #6c63ff;
+      --bg:           #0e1e1e;
+      --bg-card:      #162828;
+      --bg-hover:     #1e3434;
+      --bg-input:     #162828;
+      --text-primary: #f0ece4;
+      --text-secondary: #9ab4a8;
+      --text-muted:   #5a7870;
+      --border:       #2a4040;
+      --border-drop:  #1e3030;
+      --divider:      #1e3030;
+      --accent:       #e07858;
+      --accent-hover: #e88868;
+      --accent-active-bg: #7a2c18;
+      --accent-glow:  rgba(224,120,88,0.2);
+      --btn-bg:       #3a8890;
+      --btn-bg-hover: #4898a0;
+      --chord-name:   #98b840;
+      --chord-name-active: #d8f0a0;
+      --progress-bg:  #1e3030;
+      --card-shadow:  0 1px 3px rgba(0,0,0,0.35);
+      --card-shadow-hover: 0 2px 10px rgba(0,0,0,0.45);
+      --card-active-shadow: 0 4px 16px rgba(58,136,144,0.35);
+      --passing:      #d8c050;
+      --passing-active: #f8e888;
+      --error:        #f87171;
+      --toggle-bg:    #1e3030;
+      --toggle-active: #3a8890;
     }
 
     body {
@@ -110,7 +118,7 @@
     /* ── Layout ── */
     .site-header { width: 100%; max-width: 1600px; margin-bottom: 32px; text-align: left; }
 
-    h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
+    h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; color: var(--chord-name); }
 
     .subtitle { color: var(--text-secondary); font-size: 1rem; }
 
@@ -123,7 +131,7 @@
     .info-tip::after {
       content: attr(data-tooltip);
       position: absolute; bottom: calc(100% + 7px); left: 0;
-      background: var(--text-primary); color: var(--bg);
+      background: #522838; color: #f5ede8;
       font-size: 0.78rem; font-weight: 400; line-height: 1.45;
       padding: 7px 11px; border-radius: 8px;
       width: 260px; white-space: normal;
@@ -182,12 +190,12 @@
     }
 
     .btn {
-      padding: 11px 28px; background: var(--accent); color: #fff;
+      padding: 11px 28px; background: var(--btn-bg); color: #fff;
       border: none; border-radius: 980px; font-size: 0.95rem; font-weight: 600;
       cursor: pointer; transition: background 0.2s, opacity 0.2s;
       font-family: inherit; letter-spacing: -0.01em;
     }
-    .btn:hover { background: var(--accent-hover); }
+    .btn:hover { background: var(--btn-bg-hover); }
     .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
     .btn-small { padding: 7px 16px; font-size: 0.85rem; }
@@ -266,10 +274,9 @@
     .chord-card:hover { background: var(--bg-hover); box-shadow: var(--card-shadow-hover); }
     .chord-card.active { background: var(--accent-active-bg); transform: scale(1.06); box-shadow: var(--card-active-shadow); }
 
-    .chord-name { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
+    .chord-name { font-size: 1.25rem; font-weight: 700; color: var(--chord-name); }
     .chord-name.nc { color: var(--text-muted); font-weight: 400; font-style: italic; }
-    .chord-card.active .chord-name { color: #fff; }
-    [data-theme="dark"] .chord-card.active .chord-name { color: #a89fff; }
+    .chord-card.active .chord-name { color: var(--chord-name-active); }
 
     .chord-notes { font-size: 0.85rem; color: var(--text-muted); letter-spacing: 0.03em; }
     .chord-card.active .chord-notes { color: rgba(255,255,255,0.7); }
@@ -281,6 +288,7 @@
     .chord-time { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
     .chord-card.active .chord-time { color: rgba(255,255,255,0.6); }
     [data-theme="dark"] .chord-card.active .chord-time { color: #a89fff; }
+    .chord-card.active .chord-time { color: rgba(255,255,255,0.6); }
 
     label[for="resolution"] { color: var(--text-secondary); font-size: 0.9rem; }
 
@@ -436,7 +444,7 @@
       border-radius: 980px; padding: 6px 16px; font-size: 0.8rem; font-weight: 500;
       cursor: pointer; font-family: inherit; transition: border-color 0.2s, color 0.2s;
     }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost:hover { border-color: var(--btn-bg); color: var(--btn-bg); }
   </style>
 </head>
 <body>
