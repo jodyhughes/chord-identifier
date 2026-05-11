@@ -63,16 +63,34 @@ export function notesFromOutput({ frames, onsets, contours }, options = {}) {
 
 // Full pipeline: runs ML inference then post-processes. Returns notes + raw model output.
 export async function runBasicPitch(audioBuffer, onProgress, options = {}) {
-  const bp = await getModel();
-  const frames = [], onsets = [], contours = [];
+  async function infer() {
+    const bp = await getModel();
+    const frames = [], onsets = [], contours = [];
+    await bp.evaluateModel(
+      audioBuffer,
+      (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
+      onProgress,
+    );
+    return { frames, onsets, contours };
+  }
 
-  await bp.evaluateModel(
-    audioBuffer,
-    (f, o, c) => { frames.push(...f); onsets.push(...o); contours.push(...c); },
-    onProgress,
-  );
+  let modelOutput;
+  try {
+    modelOutput = await infer();
+  } catch (err) {
+    // Long audio produces tensors that exceed WebGL texture limits, causing TF.js to generate
+    // split-texture shaders with a known compilation bug. Fall back to CPU and retry.
+    if (tf.getBackend() === 'webgl') {
+      console.warn('WebGL inference failed, retrying on CPU:', err.message);
+      await tf.setBackend('cpu');
+      await tf.ready();
+      model = null;
+      modelOutput = await infer();
+    } else {
+      throw err;
+    }
+  }
 
-  const modelOutput = { frames, onsets, contours };
   return { notes: notesFromOutput(modelOutput, options), modelOutput };
 }
 

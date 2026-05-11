@@ -42,13 +42,21 @@ After analyzing a song, you can export the detected chords as a MIDI file:
 
 ## Advanced settings
 
-Click **Advanced** (appears after analysis) to open a modal with model parameters and a live piano roll preview:
+Click **Advanced ✦** (appears after analysis) to open a modal with model parameters and an interactive piano roll:
 
 - **Model Confidence Threshold** — controls how confident the model must be to emit a note
 - **Note Segmentation** — controls how easily adjacent notes are split vs. merged
 - **Minimum Note Length** — filters out very short notes
 - **Pitch Range** — ignores notes outside a MIDI range
 - Changes preview instantly on the piano roll; click **Reanalyze** to apply them to chord detection
+
+### Piano roll
+
+- Scrollable, 3× wider than the modal for detail
+- Fixed keyboard strip on the left with C-octave labels
+- Bar lines aligned to the detected beat grid
+- **Audio playback** — play/pause the source audio with a synced playhead that auto-scrolls
+- **MIDI preview** — synthesize the detected notes as audio using a lookahead Web Audio scheduler (no extra download required)
 
 ## Chord types detected
 
